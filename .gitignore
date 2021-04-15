@@ -1,0 +1,16 @@
+\#*
+*.crashcoqide
+.coqdeps.d
+Makefile.coq
+Makefile.coq.conf
+CoqMakefile
+CoqMakefile.conf
+.CoqMakefile.d
+.lia.cache
+
+*.glob
+*.vo
+*.vok
+*.vos
+*.aux
+*.swp
