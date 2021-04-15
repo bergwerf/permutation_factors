@@ -1,8 +1,8 @@
 (* General purpose notations. *)
 
 Require Vector.
-Require Import Utf8 Bool List PeanoNat.
-Export Utf8 List ListNotations PeanoNat.
+Require Import Utf8 Bool List PeanoNat PArith BinNums.
+Export Utf8 List ListNotations PeanoNat PArith BinNums.
 
 (******************************************************************************)
 (* I. Global notations.                                                       *)
