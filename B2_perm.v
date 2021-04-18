@@ -3,9 +3,11 @@
 From permutation_solver Require Import A_setup B1_fmap.
 
 (***
-Using an unbalanced tree (fmap) to store permutations likely outperforms a
-balanced tree because permutation indices are relatively small (for Rubik's cube
-we have 48 indices). Of course not all finite maps represent a permutation.
+Permutations
+
+Using an unbalanced tree (fmap) to store permutations outperforms a balanced
+tree because permutation indices are relatively small (for Rubik's cube we have
+48 indices). Of course not all finite maps represent a permutation.
 
 There are several equivalent ways to describe a valid permutation:
 - A permutation is a bijective function from a finite set to itself.

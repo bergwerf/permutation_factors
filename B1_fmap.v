@@ -5,167 +5,223 @@ From permutation_solver Require Import A_setup.
 Open Scope positive.
 
 (***
-We start with some utilities for positive numbers.
+Operations on positive numbers
 *)
 
+(* Reverse append i to an accumulator. *)
+Fixpoint lifo (i acc : positive) :=
+  match i with
+  | xH => acc
+  | xO i' => lifo i' (xO acc)
+  | xI i' => lifo i' (xI acc)
+  end.
+
+Notation mirror i := (lifo i xH).
+
 (***
+Unbalanced binary tree
+
 Using an unbalanced tree has several interesting advantages:
 - Implementation is simpler.
 - Creation does not require balancing.
 - Lookup does not require key comparison.
 *)
 
-Inductive fmap := Ident | Node (i : positive) (f0 f1 : fmap).
+Inductive fmap := Leaf | Node (iO : option positive) (f0 f1 : fmap).
 
-(* Get the submap under a given branch. *)
-Fixpoint truncate (f : fmap) (i : positive) :=
+(***
+Insert and lookup mappings
+*)
+
+(* Insert j at i. *)
+Fixpoint insert (f : fmap) (i j : positive) :=
   match f with
-  | Ident => Ident
-  | Node j f0 f1 =>
+  | Leaf =>
     match i with
-    | xH => f
-    | xO i' => truncate f0 i'
-    | xI i' => truncate f1 i'
+    | xH => Node (Some j) Leaf Leaf
+    | xO i' => Node None (insert Leaf i' j) Leaf
+    | xI i' => Node None Leaf (insert Leaf i' j)
+    end
+  | Node iO f0 f1 =>
+    match i with
+    | xH => Node (Some j) f0 f1
+    | xO i' => Node iO (insert f0 i' j) f1
+    | xI i' => Node iO f0 (insert f1 i' j)
     end
   end.
 
-(* Apply f to i. The input index must be repeated for the Ident case. *)
-Fixpoint apply (f : fmap) (i : positive) : positive -> positive :=
+(* Get the value at i. *)
+Fixpoint lookup (f : fmap) (i : positive) : option positive :=
   match f with
-  | Ident => λ j, j
-  | Node j f0 f1 =>
+  | Leaf => None
+  | Node jO f0 f1 =>
     match i with
-    | xH => λ _, j
-    | xO i' => apply f0 i'
-    | xI i' => apply f1 i'
+    | xH => jO
+    | xO i' => lookup f0 i'
+    | xI i' => lookup f1 i'
     end
   end.
 
-Notation "f ⋅ i" := (apply f i i) (at level 5, format "f ⋅ i").
+(***
+Function application
+*)
+
+Definition apply f i :=
+  match lookup f i with
+  | Some j => j
+  | None => i
+  end.
+
+Notation "f ⋅ i" := (apply f i) (at level 5, format "f ⋅ i").
+
+(***
+Function composition
+*)
+
+(* Apply g to all mappings in f. *)
+Fixpoint fmap_map (g f : fmap) :=
+  match f with
+  | Leaf => Leaf
+  | Node (Some i) f0 f1 => Node (Some g⋅i) (fmap_map g f0) (fmap_map g f1)
+  | Node None f0 f1 => Node None (fmap_map g f0) (fmap_map g f1)
+  end.
 
 (* Apply g after f. The initial input for g must be copied as gI. *)
 Fixpoint compose (gI g f : fmap) {struct f} :=
   match f with
-  | Ident => g
-  | Node j f0 f1 =>
+  | Leaf => g
+  | Node (Some i) f0 f1 =>
     match g with
-    | Ident => Node (gI⋅j) (compose gI Ident f0) (compose gI Ident f1)
-    | Node _ g0 g1 => Node (gI⋅j) (compose gI g0 f0) (compose gI g1 f1)
+    | Leaf => Node (Some gI⋅i) (fmap_map gI f0) (fmap_map gI f1)
+    | Node jO g0 g1 => Node (Some gI⋅i) (compose gI g0 f0) (compose gI g1 f1)
+    end
+  | Node None f0 f1 =>
+    match g with
+    | Leaf => Node None (fmap_map gI f0) (fmap_map gI f1)
+    | Node jO g0 g1 => Node jO (compose gI g0 f0) (compose gI g1 f1)
     end
   end.
 
-(* Reverse a positive number (path to index) andd add to accumulator. *)
-Fixpoint revp (r acc : positive) :=
-  match r with
-  | xH => acc
-  | xO r' => revp r' (xO acc)
-  | xI r' => revp r' (xI acc)
-  end.
+Notation "g ∘ f" := (compose g g f) (at level 50).
 
-(* Prune identity branches give we are at branch r. *)
-Fixpoint prune (f : fmap) (r : positive) :=
+(***
+Function inversion
+*)
+
+(* Invert a surjective map. *)
+Fixpoint invert (f f_inv : fmap) (r : positive) :=
   match f with
-  | Ident => Ident
-  | Node j f0 f1 =>
-    match prune f0 (xO r), prune f1 (xI r) with
-    | Ident, Ident => if revp r xH =? j then Ident else Node j Ident Ident
-    | f0', f1' => Node j f0' f1'
+  | Leaf => f_inv
+  | Node iO f0 f1 =>
+    let f_inv' := invert f0 f_inv r~0 in
+    let f_inv'' := invert f1 f_inv' r~1 in
+    match iO with
+    | Some i => insert f_inv'' i (mirror r)
+    | None => f_inv''
     end
   end.
 
-Notation "g ∘ f" := (prune (compose g g f) xH) (at level 50).
+Notation inv f := (invert f Leaf xH).
 
 (***
-Lets state some boring, obvious results.
+Pruning
+
+There are several advantages of pruning (removing identity mappings) trees after
+composition. There is a slight advantage for lookups, but more importantly;
+compositions will be faster. The inversion function we define later will also
+benefit from pruning. But, this optimization is more tricky than it seems,
+because pruning is quite expensive. We have to compare every mapping to its key
+path, and, when recursively iterating the tree, we have to keep track of the
+position of every node which requires appending bits to the end of a `positive`.
+
+Because we will be working with permutations on the same finite domain, I think
+this pruning procedure can be optimized a little by pre-computing the tree of
+all identity mappings. Hence I have implemented a sifting function that removes
+the mappings that are present in a given tree. We will have to determine in
+practice if this sifting procedure actually provides a net speed-up.
 *)
 
-Lemma fmap_eq_dec (f g : fmap) :
-  {f = g} + {f ≠ g}.
-Proof.
-revert g; induction f as [|j f0 Hf0 f1 Hf1]; intros [].
-now left. 1,2: now right.
-destruct (Pos.eq_dec j i); subst.
-destruct (Hf0 f2); subst.
-destruct (Hf1 f3); subst.
-now left. all: right; congruence.
-Qed.
+(* A pruned fmap contains no explicit identity mappings. *)
+Fixpoint Pruned (f : fmap) (r : positive) :=
+  match f with
+  | Leaf => True
+  | Node iO f0 f1 =>
+    Pruned f0 r~0 /\
+    Pruned f1 r~1 /\
+    match iO with
+    | Some i => i ≠ mirror r
+    | None => True
+    end
+  end.
+
+(* Remove the mappings in f that are also in s. *)
+Fixpoint sift (f s : fmap) :=
+  let collapse := λ (f0 f1 : fmap),
+    match f0, f1 with
+    | Leaf, Leaf => Leaf
+    | f0', f1' => Node None f0' f1'
+    end
+  in match s with
+  | Leaf => f
+  | Node iO s0 s1 =>
+    match f with
+    | Leaf => Leaf
+    | Node None f0 f1 => collapse (sift f0 s0) (sift f1 s1)
+    | Node (Some j) f0 f1 =>
+      match iO with
+      | Some i =>
+        if i =? j
+        then collapse (sift f0 s0) (sift f1 s1)
+        else Node (Some j) (sift f0 s0) (sift f1 s1)
+      | None => Node (Some j) (sift f0 s0) (sift f1 s1)
+      end
+    end
+  end.
 
 (***
-We now want to prove that composition and pruning agree with application.
+Theorems
 *)
 
-Lemma revp_shift_xO r i : revp r i~0 = revp r~0 i.
-Proof. easy. Qed.
+Local Ltac fmap_induction f :=
+  induction f as [|jO f0 IHf0 f1 IHf1]; simpl; intros.
 
-Lemma revp_shift_xI r i : revp r i~1 = revp r~1 i.
-Proof. easy. Qed.
-
-(* Pruning does not alter the mapping. *)
-Theorem prune_apply f r i :
-  apply (prune f r) i (revp r i) = apply f i (revp r i).
+Lemma lookup_fmap_map_None g f i :
+  lookup f i = None -> lookup (fmap_map g f) i = None.
 Proof.
-revert r i; induction f as [|j f0 IHf0 f1 IHf1]; intros. easy.
-simpl prune. destruct (prune f0 _) eqn:H0. destruct (prune f1 _) eqn:H1.
-(* The second and third goal are actually exactly the same. *)
-2: rewrite <-H0, <-H1; clear H0 H1. 3: rewrite <-H0; clear H0.
-(* First solve the double Ident case. *)
-{ destruct (revp r 1 =? j) eqn:E; simpl; destruct i.
-  2,5: rewrite revp_shift_xO, <-IHf0, H0; easy.
-  1,3: rewrite revp_shift_xI, <-IHf1, H1; easy.
-  apply Pos.eqb_eq, E. reflexivity. }
-(* Solve the remaining goals simultaneously.*)
-all: simpl; destruct i; try reflexivity.
-2,4: rewrite revp_shift_xO, <-IHf0; easy.
-1,2: rewrite revp_shift_xI, <-IHf1; easy.
+revert i; fmap_induction f. easy.
+destruct i, jO as [j|]; simpl; try easy.
+all: try apply IHf0; try apply IHf1; easy.
 Qed.
 
-Corollary prune_xH_apply f i :
-  (prune f xH)⋅i = f⋅i.
+Lemma lookup_compose_None gI g f i :
+  lookup f i = None -> lookup (compose gI g f) i = lookup g i.
 Proof.
-apply prune_apply.
+revert g i; fmap_induction f. easy.
+destruct jO as [j|], g, i; simpl; try easy.
+1,2,5,6: apply lookup_fmap_map_None, H.
+all: try rewrite IHf1; try rewrite IHf0; easy.
 Qed.
 
-(* If f is Ident at i, then f⋅i = i. *)
-Lemma truncate_Ident_apply f i iI :
-  truncate f i = Ident -> apply f i iI = iI.
+Lemma lookup_fmap_map_Some g f i j :
+  lookup f i = Some j -> lookup (fmap_map g f) i = Some g⋅j.
 Proof.
-revert i; induction f as [|j f0 IHf0 f1 IHf1]; simpl; intros. easy.
-destruct i. apply IHf1, H. apply IHf0, H. discriminate H.
+revert g i; fmap_induction f. easy.
+destruct jO as [j'|], i; simpl; try congruence.
+all: try apply IHf0; try apply IHf1; easy.
 Qed.
 
-(* If f is the identity at i, then the sub-branch of g is used. *)
-Lemma compose_apply_Ident gI g f i iI :
-  truncate f i = Ident -> apply (compose gI g f) i iI = apply g i iI.
+Lemma lookup_compose_Some gI g f i j :
+  lookup f i = Some j -> lookup (compose gI g f) i = Some gI⋅j.
 Proof.
-revert g i iI; induction f as [|j f0 IHf0 f1 IHf1]; simpl; intros. easy.
-destruct i, g; simpl; try discriminate H.
-rewrite IHf1; easy. apply IHf1, H.
-rewrite IHf0; easy. apply IHf0, H.
+revert g i; induction f as [|jO f0 IHf0 f1 IHf1]; simpl; intros. easy.
+destruct jO as [j'|], g, i; simpl; try congruence.
+all: try apply lookup_fmap_map_Some; try apply IHf0; try apply IHf1; easy.
 Qed.
 
-(* If f is not the identity at i, then gI is applied to the node value. *)
-Lemma compose_apply_not_Ident gI g f i iI :
-  truncate f i ≠ Ident -> apply (compose gI g f) i iI = gI⋅(apply f i iI).
-Proof.
-revert g i iI; induction f as [|j f0 IHf0 f1 IHf1]; intros. easy.
-destruct g, i; simpl in *; try reflexivity.
-2,4: apply IHf0, H. 1,2: apply IHf1, H.
-Qed.
-
-Theorem compose_apply g f i :
-  (compose g g f)⋅i = g⋅(f⋅i).
-Proof.
-(* We split into two cases based on `truncate f i`. *)
-destruct (truncate f i) eqn:H.
-- eapply truncate_Ident_apply in H as Hf; rewrite Hf.
-  apply compose_apply_Ident, H.
-- apply compose_apply_not_Ident; congruence.
-Qed.
-
-Corollary comp_apply g f i :
+Corollary apply_compose g f i :
   (g ∘ f)⋅i = g⋅(f⋅i).
 Proof.
-etransitivity.
-apply prune_apply.
-apply compose_apply.
+unfold apply; destruct (lookup f i) as [j|] eqn:H.
+erewrite lookup_compose_Some; easy.
+erewrite lookup_compose_None; easy.
 Qed.
