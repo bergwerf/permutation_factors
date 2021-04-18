@@ -2,5 +2,11 @@
 
 A_setup.v
 
-B1_fmap.v
-B2_perm.v
+B1_finite_map.v
+B2_permutation.v
+
+C1_Schreier_vector.v
+C2_Sims_filter.v
+C3_generator_chain.v
+
+D1_word_search.v

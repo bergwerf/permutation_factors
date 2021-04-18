@@ -1,6 +1,6 @@
 (* Permutations as unbalanced binary trees (fmap). *)
 
-From permutation_solver Require Import A_setup B1_fmap.
+From permutation_solver Require Import A_setup B1_finite_map.
 
 (***
 Permutations

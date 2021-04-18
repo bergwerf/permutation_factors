@@ -1,4 +1,4 @@
-A verified permutation solver
+A verified permutation finder
 =============================
 The aim of this project is to develop an optimized functional implementation of
 the algorithms by O. Scheier, C. Sims, and T. Minkwitz using Coq. The combined

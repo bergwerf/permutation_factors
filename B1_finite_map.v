@@ -26,50 +26,63 @@ Using an unbalanced tree has several interesting advantages:
 - Creation does not require balancing.
 - Lookup does not require key comparison.
 *)
+Section Unbalanced_binary_tree.
 
-Inductive fmap := Leaf | Node (iO : option positive) (f0 f1 : fmap).
+Variable V : Type.
+
+Inductive fmap := Leaf | Node (vO : option V) (f0 f1 : fmap).
 
 (***
 Insert and lookup mappings
 *)
 
 (* Create a map that only maps i to j. *)
-Fixpoint create (i j : positive) :=
+Fixpoint create (i : positive) (v : V) :=
   match i with
-  | xH => Node (Some j) Leaf Leaf
-  | xO i' => Node None (create i' j) Leaf
-  | xI i' => Node None Leaf (create i' j)
+  | xH => Node (Some v) Leaf Leaf
+  | xO i' => Node None (create i' v) Leaf
+  | xI i' => Node None Leaf (create i' v)
   end.
 
 (* Insert j at i. *)
-Fixpoint insert (f : fmap) (i j : positive) :=
+Fixpoint insert (f : fmap) (i : positive) (v : V) :=
   match f with
-  | Leaf => create i j
-  | Node iO f0 f1 =>
+  | Leaf => create i v
+  | Node vO f0 f1 =>
     match i with
-    | xH => Node (Some j) f0 f1
-    | xO i' => Node iO (insert f0 i' j) f1
-    | xI i' => Node iO f0 (insert f1 i' j)
+    | xH => Node (Some v) f0 f1
+    | xO i' => Node vO (insert f0 i' v) f1
+    | xI i' => Node vO f0 (insert f1 i' v)
     end
   end.
 
 (* Get the value at i. *)
-Fixpoint lookup (f : fmap) (i : positive) : option positive :=
+Fixpoint lookup (f : fmap) (i : positive) :=
   match f with
   | Leaf => None
-  | Node jO f0 f1 =>
+  | Node vO f0 f1 =>
     match i with
-    | xH => jO
+    | xH => vO
     | xO i' => lookup f0 i'
     | xI i' => lookup f1 i'
     end
   end.
 
+End Unbalanced_binary_tree.
+
+Arguments Leaf {_}.
+Arguments Node {_}.
+Arguments create {_}.
+Arguments insert {_}.
+Arguments lookup {_}.
+
+Notation ffun := (fmap positive).
+
 (***
 Function application
 *)
 
-Definition apply f i :=
+Definition apply (f : ffun) i :=
   match lookup f i with
   | Some j => j
   | None => i
@@ -82,25 +95,25 @@ Function composition
 *)
 
 (* Apply g to all mappings in f. *)
-Fixpoint fmap_map (g f : fmap) :=
+Fixpoint map_ffun (g f : ffun) :=
   match f with
   | Leaf => Leaf
-  | Node (Some i) f0 f1 => Node (Some g⋅i) (fmap_map g f0) (fmap_map g f1)
-  | Node None f0 f1 => Node None (fmap_map g f0) (fmap_map g f1)
+  | Node (Some i) f0 f1 => Node (Some g⋅i) (map_ffun g f0) (map_ffun g f1)
+  | Node None f0 f1 => Node None (map_ffun g f0) (map_ffun g f1)
   end.
 
 (* Apply g after f. The initial input for g must be copied as gI. *)
-Fixpoint compose (gI g f : fmap) {struct f} :=
+Fixpoint compose (gI g f : ffun) {struct f} :=
   match f with
   | Leaf => g
   | Node (Some i) f0 f1 =>
     match g with
-    | Leaf => Node (Some gI⋅i) (fmap_map gI f0) (fmap_map gI f1)
+    | Leaf => Node (Some gI⋅i) (map_ffun gI f0) (map_ffun gI f1)
     | Node jO g0 g1 => Node (Some gI⋅i) (compose gI g0 f0) (compose gI g1 f1)
     end
   | Node None f0 f1 =>
     match g with
-    | Leaf => Node None (fmap_map gI f0) (fmap_map gI f1)
+    | Leaf => Node None (map_ffun gI f0) (map_ffun gI f1)
     | Node jO g0 g1 => Node jO (compose gI g0 f0) (compose gI g1 f1)
     end
   end.
@@ -112,7 +125,7 @@ Function inversion
 *)
 
 (* Invert a surjective map. *)
-Fixpoint invert (f f_inv : fmap) (r : positive) :=
+Fixpoint invert (f f_inv : ffun) (r : positive) :=
   match f with
   | Leaf => f_inv
   | Node iO f0 f1 =>
@@ -144,8 +157,8 @@ the mappings that are present in a given tree. We will have to determine in
 practice if this sifting procedure actually provides a net speed-up.
 *)
 
-(* A pruned fmap contains no explicit identity mappings. *)
-Fixpoint Pruned (f : fmap) (r : positive) :=
+(* A pruned function tree contains no explicit identity mappings. *)
+Fixpoint Pruned (f : ffun) (r : positive) :=
   match f with
   | Leaf => True
   | Node iO f0 f1 =>
@@ -158,8 +171,8 @@ Fixpoint Pruned (f : fmap) (r : positive) :=
   end.
 
 (* Remove the mappings in f that are also in s. *)
-Fixpoint sift (f s : fmap) :=
-  let collapse := λ (f0 f1 : fmap),
+Fixpoint sift (f s : ffun) :=
+  let collapse := λ (f0 f1 : ffun),
     match f0, f1 with
     | Leaf, Leaf => Leaf
     | f0', f1' => Node None f0' f1'
@@ -188,43 +201,43 @@ Theorems
 Local Ltac fmap_induction f :=
   induction f as [|jO f0 IHf0 f1 IHf1]; simpl; intros.
 
-Lemma lookup_create_eq i j : lookup (create i j) i = Some j.
+Lemma lookup_create_eq {V} i (v : V) : lookup (create i v) i = Some v.
 Proof. induction i; easy. Qed.
 
-Lemma lookup_create_neq i j k :
-  i ≠ k -> lookup (create i j) k = None.
+Lemma lookup_create_neq {V} i j (v : V) :
+  i ≠ j -> lookup (create i v) j = None.
 Proof.
-revert k; induction i; simpl; intros; destruct k.
+revert j; induction i; simpl; intros; destruct j.
 all: try easy; apply IHi; congruence.
 Qed.
 
-Theorem lookup_insert_eq f i j :
-  lookup (insert f i j) i = Some j.
+Theorem lookup_insert_eq {V} f i (v : V) :
+  lookup (insert f i v) i = Some v.
 Proof.
 revert i; fmap_induction f.
 apply lookup_create_eq.
 destruct i; simpl; easy.
 Qed.
 
-Theorem lookup_insert_neq f i j k :
-  i ≠ k -> lookup (insert f i j) k = lookup f k.
+Theorem lookup_insert_neq {V} f i j (v : V) :
+  i ≠ j -> lookup (insert f i v) j = lookup f j.
 Proof.
-revert i k; fmap_induction f.
+revert i j; fmap_induction f.
 apply lookup_create_neq, H.
-destruct i, k; simpl; try easy.
+destruct i, j; simpl; try easy.
 apply IHf1; congruence.
 apply IHf0; congruence.
 Qed.
 
-Theorem lookup_insert f i j k :
-  lookup (insert f i j) k = if i =? k then Some j else lookup f k.
+Theorem lookup_insert {V} f i j (v : V) :
+  lookup (insert f i v) j = if i =? j then Some v else lookup f j.
 Proof.
-destruct (i =? k) eqn:E; [apply Pos.eqb_eq in E|apply Pos.eqb_neq in E].
+destruct (i =? j) eqn:E; [apply Pos.eqb_eq in E|apply Pos.eqb_neq in E].
 subst; apply lookup_insert_eq. apply lookup_insert_neq, E.
 Qed.
 
-Lemma lookup_fmap_map_None g f i :
-  lookup f i = None -> lookup (fmap_map g f) i = None.
+Lemma lookup_map_ffun_None g f i :
+  lookup f i = None -> lookup (map_ffun g f) i = None.
 Proof.
 revert i; fmap_induction f. easy.
 destruct i, jO as [j|]; simpl; try easy.
@@ -236,12 +249,12 @@ Lemma lookup_compose_None gI g f i :
 Proof.
 revert g i; fmap_induction f. easy.
 destruct jO as [j|], g, i; simpl; try easy.
-1,2,5,6: apply lookup_fmap_map_None, H.
+1,2,5,6: apply lookup_map_ffun_None, H.
 all: try rewrite IHf1; try rewrite IHf0; easy.
 Qed.
 
-Lemma lookup_fmap_map_Some g f i j :
-  lookup f i = Some j -> lookup (fmap_map g f) i = Some g⋅j.
+Lemma lookup_map_ffun_Some g f i j :
+  lookup f i = Some j -> lookup (map_ffun g f) i = Some g⋅j.
 Proof.
 revert g i; fmap_induction f. easy.
 destruct jO as [j'|], i; simpl; try congruence.
@@ -253,7 +266,7 @@ Lemma lookup_compose_Some gI g f i j :
 Proof.
 revert g i; fmap_induction f. easy.
 destruct jO as [j'|], g, i; simpl; try congruence.
-all: try apply lookup_fmap_map_Some; try apply IHf0; try apply IHf1; easy.
+all: try apply lookup_map_ffun_Some; try apply IHf0; try apply IHf1; easy.
 Qed.
 
 Theorem apply_compose g f i :
