@@ -33,15 +33,18 @@ Inductive fmap := Leaf | Node (iO : option positive) (f0 f1 : fmap).
 Insert and lookup mappings
 *)
 
+(* Create a map that only maps i to j. *)
+Fixpoint create (i j : positive) :=
+  match i with
+  | xH => Node (Some j) Leaf Leaf
+  | xO i' => Node None (create i' j) Leaf
+  | xI i' => Node None Leaf (create i' j)
+  end.
+
 (* Insert j at i. *)
 Fixpoint insert (f : fmap) (i j : positive) :=
   match f with
-  | Leaf =>
-    match i with
-    | xH => Node (Some j) Leaf Leaf
-    | xO i' => Node None (insert Leaf i' j) Leaf
-    | xI i' => Node None Leaf (insert Leaf i' j)
-    end
+  | Leaf => create i j
   | Node iO f0 f1 =>
     match i with
     | xH => Node (Some j) f0 f1
@@ -185,6 +188,41 @@ Theorems
 Local Ltac fmap_induction f :=
   induction f as [|jO f0 IHf0 f1 IHf1]; simpl; intros.
 
+Lemma lookup_create_eq i j : lookup (create i j) i = Some j.
+Proof. induction i; easy. Qed.
+
+Lemma lookup_create_neq i j k :
+  i ≠ k -> lookup (create i j) k = None.
+Proof.
+revert k; induction i; simpl; intros; destruct k.
+all: try easy; apply IHi; congruence.
+Qed.
+
+Theorem lookup_insert_eq f i j :
+  lookup (insert f i j) i = Some j.
+Proof.
+revert i; fmap_induction f.
+apply lookup_create_eq.
+destruct i; simpl; easy.
+Qed.
+
+Theorem lookup_insert_neq f i j k :
+  i ≠ k -> lookup (insert f i j) k = lookup f k.
+Proof.
+revert i k; fmap_induction f.
+apply lookup_create_neq, H.
+destruct i, k; simpl; try easy.
+apply IHf1; congruence.
+apply IHf0; congruence.
+Qed.
+
+Theorem lookup_insert f i j k :
+  lookup (insert f i j) k = if i =? k then Some j else lookup f k.
+Proof.
+destruct (i =? k) eqn:E; [apply Pos.eqb_eq in E|apply Pos.eqb_neq in E].
+subst; apply lookup_insert_eq. apply lookup_insert_neq, E.
+Qed.
+
 Lemma lookup_fmap_map_None g f i :
   lookup f i = None -> lookup (fmap_map g f) i = None.
 Proof.
@@ -213,15 +251,23 @@ Qed.
 Lemma lookup_compose_Some gI g f i j :
   lookup f i = Some j -> lookup (compose gI g f) i = Some gI⋅j.
 Proof.
-revert g i; induction f as [|jO f0 IHf0 f1 IHf1]; simpl; intros. easy.
+revert g i; fmap_induction f. easy.
 destruct jO as [j'|], g, i; simpl; try congruence.
 all: try apply lookup_fmap_map_Some; try apply IHf0; try apply IHf1; easy.
 Qed.
 
-Corollary apply_compose g f i :
+Theorem apply_compose g f i :
   (g ∘ f)⋅i = g⋅(f⋅i).
 Proof.
 unfold apply; destruct (lookup f i) as [j|] eqn:H.
 erewrite lookup_compose_Some; easy.
 erewrite lookup_compose_None; easy.
 Qed.
+
+Lemma lookup_invert_Some f f_inv r i j :
+  lookup f_inv j = None ->
+  lookup (invert f f_inv r) j = Some (lifo r i) ->
+  lookup f i = Some j.
+Proof.
+revert f_inv r i; fmap_induction f. congruence.
+Admitted.
