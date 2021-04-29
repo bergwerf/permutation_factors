@@ -21,4 +21,5 @@ permutation group. Therefore it has to follow the usual group axioms:
 3. The set contains the inverse of any permutation.
 *)
 
-Notation "'perm'" := (fmap).
+Definition perm := ffun.
+Definition ident : perm := Leaf.
