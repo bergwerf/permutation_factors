@@ -1,6 +1,6 @@
 (* A functional Sims-filter to reduce generator sets. *)
 
-From permutation_solver Require Import A_setup B1_finite_map B2_permutation.
+From Permutations Require Import A_setup B1_finite_map B2_permutation.
 
 Module Sims.
 

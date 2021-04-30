@@ -1,18 +1,15 @@
 (* Permutations as unbalanced binary trees (fmap). *)
 
-From permutation_solver Require Import A_setup B1_finite_map.
+From Permutations Require Import A_setup B1_finite_map.
 
 (***
-Permutations
+:: Permutations ::
 
-Using an unbalanced tree (fmap) to store permutations outperforms a balanced
-tree because permutation indices are relatively small (for Rubik's cube we have
-48 indices). Of course not all finite maps represent a permutation.
-
-There are several equivalent ways to describe a valid permutation:
+We use radix-2 trees (fmap) to store permutations. Of course not all finite maps
+represent a permutation. Ways to describe a valid permutation include:
 - A permutation is a bijective function from a finite set to itself.
 - A permutation is the result of composing a list of transpositions.
-- The node-numbers and ident-numbers of a permutation are all unique.
+- Mapping node values are unique and only map to other node values.
 
 Next we want to describe what it means for a subset of fmap to describe a
 permutation group. Therefore it has to follow the usual group axioms:
@@ -23,3 +20,100 @@ permutation group. Therefore it has to follow the usual group axioms:
 
 Definition perm := ffun.
 Definition ident : perm := Leaf.
+
+(***
+:: Cycle notation ::
+
+Permutations are often written as compositions of cycles. For example the cycle
+`(1 3 2)` represents the function {⟨1, 3⟩, ⟨3, 2⟩, ⟨2, 1⟩}. We will also support
+input and output of such cycles as lists of numbers, however to simplify the
+implementation we require that the start of the cycle is repeated at the end.
+For example `(1 3 2) = [1; 3; 2; 1]`.
+
+In general we regard a cycle as a linear lookup list. Because it is more natural
+for left-to-right readers we compose cycles left-first. Note that when
+permutations are unpacked into cycles we have to glue mappings together, this
+is handled by the `push` function.
+*)
+Module Cycles.
+
+Definition cycle := list positive.
+
+Fixpoint next (c : cycle) (i : positive) :=
+  match c with
+  | [] => i
+  | [_] => i
+  | i' :: (j :: _) as c' => if i =? i' then j else next c' i
+  end.
+
+(***
+Permutation map to cycles conversion
+*)
+
+Fixpoint push (cs : list (positive × cycle × positive))
+  (d0 : positive) (d : cycle) (dn : positive) :=
+  match cs with
+  | [] => [(d0, d, dn)]
+  | (c0, c, cn) :: cs' =>
+    if dn =? c0
+    then push cs' d0 (d ++ [dn] ++ c) cn
+    else if d0 =? cn
+    then push cs' c0 (c ++ [d0] ++ d) dn
+    else (c0, c, cn) :: push cs' d0 d dn
+  end.
+
+Definition unpack (π : perm) : list cycle := map
+  (λ ct, match ct with (c0, c, cn) => c0 :: c ++ [cn] end) (fold_left
+  (λ cs m, match m with (i, j) => if i =? j then cs else push cs i [] j end)
+  (entries π xH) []).
+
+(***
+Cycles to permutation map conversion
+*)
+
+Fixpoint render (π : perm) (c : cycle) :=
+  match c with
+  | [] => π
+  | [_] => π
+  | i :: (j :: _) as c' => insert (render π c') i j
+  end.
+
+Definition pack (cs : list cycle) : perm :=
+  fold_left (λ σ πi, πi ∘ σ) (map (render ident) cs) ident.
+
+(***
+Theorems
+*)
+
+Lemma next_head c0 c1 c :
+next (c0 :: c1 :: c) c0 = c1.
+Proof.
+simpl; rewrite Pos.eqb_refl; reflexivity.
+Qed.
+
+Lemma next_tail c0 c1 c i :
+  i =? c0 = false -> next (c0 :: c1 :: c) i = next (c1 :: c) i.
+Proof.
+simpl; intros; rewrite H; reflexivity.
+Qed.
+
+Lemma render_head π c0 c1 c :
+  render π (c0 :: c1 :: c) = insert (render π (c1 :: c)) c0 c1.
+Proof.
+simpl; destruct c; reflexivity.
+Qed.
+
+Theorem apply_render π c i :
+  next c i ≠ i -> (render π c)⋅i = next c i.
+Proof.
+induction c as [|c0 c]; intros. easy.
+destruct c as [|c1 c]. easy. rewrite render_head.
+destruct (i =? c0) eqn:E.
+- apply Pos.eqb_eq in E; subst.
+  rewrite next_head; apply apply_insert.
+- rewrite next_tail in *; try apply E.
+  unfold apply in *; rewrite lookup_insert.
+  rewrite Pos.eqb_sym, E, IHc; easy.
+Qed.
+
+End Cycles.

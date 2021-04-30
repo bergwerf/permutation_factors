@@ -1,8 +1,6 @@
 (* Storing finite maps as unbalanced binary trees. *)
 
-From permutation_solver Require Import A_setup.
-
-Open Scope positive.
+From Permutations Require Import A_setup.
 
 (***
 Operations on positive numbers
@@ -19,12 +17,17 @@ Fixpoint lifo (i acc : positive) :=
 Notation mirror i := (lifo i xH).
 
 (***
-Unbalanced binary tree
+:: Unbalanced binary tree ::
 
-Using an unbalanced tree has several interesting advantages:
-- Implementation is simpler.
-- Creation does not require balancing.
-- Lookup does not require key comparison.
+In this project we need lookup maps for several purposes such as storing
+permutations and storing indexed tables with fast lookups. The most logical way
+to do this in Coq is to build a radix-2 lookup tree, since a single iteration
+through the key is enough to retrieve an element (a O(n) lookup). Note that the
+permutations, vectors, and tables we implement using this datastructure could be
+implemented using fixed arrays in a non-functional language, this would make the
+whole algorithm significantly faster, but not by orders of magnitude. Also note
+that existing Coq libraries such as std++ already provide radix-2 lookup trees,
+I just decided to construct them from scratch.
 *)
 Section Unbalanced_binary_tree.
 
@@ -76,6 +79,14 @@ Fixpoint values (f : fmap) :=
   | Node (Some v) fO fI => v :: values fO ++ values fI
   end.
 
+(* Retrieve all entries. *)
+Fixpoint entries (f : fmap) (r : positive) :=
+  match f with
+  | Leaf => []
+  | Node None fO fI => entries fO r~0 ++ entries fI r~1
+  | Node (Some v) fO fI => (mirror r, v) :: entries fO r~0 ++ entries fI r~1
+  end.
+
 End Unbalanced_binary_tree.
 
 Arguments Leaf {_}.
@@ -84,6 +95,7 @@ Arguments create {_}.
 Arguments insert {_}.
 Arguments lookup {_}.
 Arguments values {_}.
+Arguments entries {_}.
 
 Notation ffun := (fmap positive).
 
@@ -133,28 +145,16 @@ Notation "g ∘ f" := (compose g g f) (at level 50).
 Function inversion
 *)
 
-(* Invert a surjective map. *)
-Fixpoint invert (f f_inv : ffun) (r : positive) :=
-  match f with
-  | Leaf => f_inv
-  | Node i_opt fO fI =>
-    let f_inv' := invert fO f_inv r~0 in
-    let f_inv'' := invert fI f_inv' r~1 in
-    match i_opt with
-    | Some i => insert f_inv'' i (mirror r)
-    | None => f_inv''
-    end
-  end.
-
-Notation inv f := (invert f Leaf xH).
+Definition inv f :=
+  fold_left (λ f_inv e, insert f_inv (snd e) (fst e)) (entries f xH) Leaf.
 
 (***
-Pruning
+:: Pruning ::
 
 There are several advantages of pruning (removing identity mappings) trees after
 composition. There is a slight advantage for lookups, but more importantly;
-compositions will be faster. The inversion function we define later will also
-benefit from pruning. But, this optimization is more tricky than it seems,
+future compositions will be faster. The inversion function we define later will
+also benefit from pruning. But, this optimization is more tricky than it seems,
 because pruning is quite expensive. We have to compare every mapping to its key
 path, and, when recursively iterating the tree, we have to keep track of the
 position of every node which requires appending bits to the end of a `positive`.
@@ -162,8 +162,12 @@ position of every node which requires appending bits to the end of a `positive`.
 Because we will be working with permutations on the same finite domain, I think
 this pruning procedure can be optimized a little by pre-computing the tree of
 all identity mappings. Hence I have implemented a sifting function that removes
-the mappings that are present in a given tree. We will have to determine in
-practice if this sifting procedure actually provides a net speed-up.
+the mappings that are present in a given sieve. We will have to determine in
+practice if pruning actually provides a net speed-up.
+
+Note that pruning is a straightforward method to determine if a given map is an
+identity function. This is used in the Sims filter, which is therefore a natural
+point for pruning.
 *)
 
 (* A pruned function tree contains no explicit identity mappings. *)
@@ -188,17 +192,17 @@ Fixpoint sift (f s : ffun) :=
     end
   in match s with
   | Leaf => f
-  | Node i_opt s0 s1 =>
+  | Node i_opt sO sI =>
     match f with
     | Leaf => Leaf
-    | Node None fO fI => collapse (sift fO s0) (sift fI s1)
+    | Node None fO fI => collapse (sift fO sO) (sift fI sI)
     | Node (Some j) fO fI =>
       match i_opt with
       | Some i =>
         if i =? j
-        then collapse (sift fO s0) (sift fI s1)
-        else Node (Some j) (sift fO s0) (sift fI s1)
-      | None => Node (Some j) (sift fO s0) (sift fI s1)
+        then collapse (sift fO sO) (sift fI sI)
+        else Node (Some j) (sift fO sO) (sift fI sI)
+      | None => Node (Some j) (sift fO sO) (sift fI sI)
       end
     end
   end.
@@ -245,6 +249,13 @@ destruct (i =? j) eqn:E; [apply Pos.eqb_eq in E|apply Pos.eqb_neq in E].
 subst; apply lookup_insert_eq. apply lookup_insert_neq, E.
 Qed.
 
+Corollary apply_insert f i j :
+  (insert f i j)⋅i = j.
+Proof.
+unfold apply; rewrite lookup_insert.
+rewrite Pos.eqb_refl; reflexivity.
+Qed.
+
 Lemma lookup_map_ffun_None g f i :
   lookup f i = None -> lookup (map_ffun g f) i = None.
 Proof.
@@ -285,11 +296,3 @@ unfold apply; destruct (lookup f i) as [j|] eqn:H.
 erewrite lookup_compose_Some; easy.
 erewrite lookup_compose_None; easy.
 Qed.
-
-Lemma lookup_invert_Some f f_inv r i j :
-  lookup f_inv j = None ->
-  lookup (invert f f_inv r) j = Some (lifo r i) ->
-  lookup f i = Some j.
-Proof.
-revert f_inv r i; fmap_induction f. congruence.
-Admitted.

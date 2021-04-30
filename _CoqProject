@@ -1,4 +1,4 @@
--R . permutation_solver
+-R . Permutations
 
 A_setup.v
 
