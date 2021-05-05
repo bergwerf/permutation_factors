@@ -1,6 +1,5 @@
 (* General purpose notations. *)
 
-Require Vector.
 Require Import Utf8 Bool List PeanoNat PArith BinNums.
 Export Utf8 List ListNotations PeanoNat PArith BinNums.
 
@@ -22,8 +21,10 @@ Notation max := (Nat.max).
 (* Cartesian products. *)
 Notation "A × B" := (prod A B) (at level 100).
 
-(* Boolean vectors. *)
-Notation vec := (Vector.t bool).
+(* Option unpacking. *)
+Notation "opt ?? d" :=
+  (match opt with Some v => v | None => d end)
+  (at level 50).
 
 (******************************************************************************)
 (* II. Global tactics.                                                        *)

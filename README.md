@@ -11,3 +11,38 @@ in the following articles: [1], [2]. These articles have been archived in the
 
 [1]: https://mathstrek.blog/2018/06/12/schreier-sims-algorithm/
 [2]: https://mathstrek.blog/2018/06/21/solving-permutation-based-puzzles/
+
+Puzzles
+-------
+In the `E#` prefixed files are definitions of permutation puzzles, and examples
+of using the algorithms that are implemented in this project. I hope that
+analysis of Rubik's cube will be feasible within Coq. Note that the first three
+puzzles only work well on computer screens, while the latter three exist as
+physical objects.
+
+1. **Cruzzle** I gave this name to a simple kind of turning puzzle. An image is
+   cut into a grid where the rows and columns can revolve around. I found that
+   some small instances, like 3×5, are more difficult than some larger ones.
+
+2. **Twiddle** This puzzle is part of *Simon Tatham's Portable Puzzle
+   Collection*, see [3]. It manipulates a grid by rotating four adjacent
+   squares. I am curious how its complexity compares to Cruzzle.
+
+3. **Inversion** This puzzle is part of te same collection as Twiddle, see [4].
+   This time you can manipulate a grid by inverting a square and all direct
+   neighbors. This puzzle could be extended to many different plane tilings.
+
+4. **Topspin** This puzzle is used as case study in [2]. It works by rotating
+   a sequence of numbers and reversing a fixed segment of them. This puzzle
+   could be extended by adding other sequence manipulations.
+
+5. **Sliding** The classic sliding puzzle is well known. It manipulates a grid
+   by removing one square, and then continuouly moving adjacent squares into
+   the empty square. This puzzle could work with different topologies.
+
+6. **Rubik** Rubik's cube is perhaps the most famous of all permutation puzzles.
+   It can be extended to many scales and dimensions, but in its most elegant
+   form it already has approximately 43 quintillion combinations.
+
+[3]: https://www.chiark.greenend.org.uk/~sgtatham/puzzles/js/twiddle.html
+[4]: https://www.chiark.greenend.org.uk/~sgtatham/puzzles/js/flip.html

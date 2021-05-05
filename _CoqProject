@@ -1,6 +1,7 @@
--R . Permutations
+# Computational Group Theory
+-R . CGT
 
-A_setup.v
+A1_setup.v
 
 B1_finite_map.v
 B2_permutation.v
@@ -10,3 +11,5 @@ C2_Sims_filter.v
 C3_generator_chain.v
 
 D1_word_search.v
+
+E1_cruzzle.v

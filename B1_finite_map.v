@@ -1,6 +1,6 @@
 (* Storing finite maps as unbalanced binary trees. *)
 
-From Permutations Require Import A_setup.
+From CGT Require Import A1_setup.
 
 (***
 Operations on positive numbers
@@ -184,13 +184,13 @@ Fixpoint Pruned (f : ffun) (r : positive) :=
   end.
 
 (* Remove the mappings in f that are also in s. *)
-Fixpoint sift (f s : ffun) :=
+Fixpoint sift (f sieve : ffun) :=
   let collapse := λ (fO fI : ffun),
     match fO, fI with
     | Leaf, Leaf => Leaf
     | fO', fI' => Node None fO' fI'
     end
-  in match s with
+  in match sieve with
   | Leaf => f
   | Node i_opt sO sI =>
     match f with
@@ -205,6 +205,13 @@ Fixpoint sift (f s : ffun) :=
       | None => Node (Some j) (sift fO sO) (sift fI sI)
       end
     end
+  end.
+
+(* Create identity sieve of depth n. *)
+Fixpoint identity_sieve (n : nat) (r : positive) :=
+  match n with
+  | O => Leaf
+  | S m => Node (Some (mirror r)) (identity_sieve m r~0) (identity_sieve m r~1)
   end.
 
 (***

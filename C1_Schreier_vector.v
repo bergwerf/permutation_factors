@@ -1,6 +1,6 @@
 (* A functional Schreier-vector to compute orbits. *)
 
-From Permutations Require Import A_setup B1_finite_map B2_permutation.
+From CGT Require Import A1_setup B1_finite_map B2_permutation.
 
 Module Schreier.
 
@@ -22,7 +22,7 @@ Fixpoint extend (i : positive) (h : perm)
     end
   end.
 
-Variable generator : list perm.
+Variable gen : list perm.
 
 (* Extend all numbers in the try list. *)
 Fixpoint extend_loop (V : vector) (try acc : list positive) :=
@@ -32,7 +32,7 @@ Fixpoint extend_loop (V : vector) (try acc : list positive) :=
     match lookup V i with
     | None => extend_loop V try' acc
     | Some h =>
-      match extend i h generator V acc with
+      match extend i h gen V acc with
       | (V', acc') => extend_loop V' try' acc'
       end
     end
@@ -49,9 +49,19 @@ Fixpoint loop (V : vector) (try : list positive) (n : nat) :=
     end
   end.
 
+Variable k : positive.
+
 (* Build a full orbit vector for a given permutation range. *)
-Definition build (range : nat) (k : positive) :=
+Definition build (range : nat) :=
   loop (insert Leaf k ident) [k] range.
+
+(* The orbit given by they keys of the Scheier vector. *)
+Definition orbit (V : vector) : list positive := map fst (entries V xH).
+
+(* The subgroup generator given by Scheier's Lemma. *)
+Definition generator (V : vector) : list perm := map
+  (λ a_u, let au := fst a_u ∘ snd a_u in inv (lookup V au⋅k ?? ident) ∘ au)
+  (list_prod gen (values V)).
 
 End Algorithm.
 
