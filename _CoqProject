@@ -2,6 +2,7 @@
 -R . CGT
 
 A1_setup.v
+A2_print.v
 
 B1_finite_map.v
 B2_permutation.v
