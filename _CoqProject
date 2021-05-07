@@ -9,8 +9,9 @@ B2_permutation.v
 
 C1_Schreier_vector.v
 C2_Sims_filter.v
-C3_generator_chain.v
+C3_subgroup_chain.v
 
 D1_word_search.v
+D2_factorization.v
 
 E1_cruzzle.v

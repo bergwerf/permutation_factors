@@ -1,6 +1,6 @@
 (* The Cruzzle puzzle. *)
 
-From CGT Require Import A1_setup A2_print B2_permutation C3_generator_chain.
+From CGT Require Import A1_setup A2_print B2_permutation C3_subgroup_chain.
 
 (*
 ┏━━━┳━━━┳━━━┓
@@ -11,7 +11,7 @@ From CGT Require Import A1_setup A2_print B2_permutation C3_generator_chain.
 *)
 Section Two_by_three.
 
-Definition generator : list perm := map Cycles.pack [
+Definition gen : list perm := map Cycles.pack [
   [[1; 2; 3; 1]];
   [[4; 5; 6; 4]];
   [[1; 4; 1]];
@@ -19,7 +19,7 @@ Definition generator : list perm := map Cycles.pack [
   [[3; 6; 3]]
 ].
 
-Definition chain := SGChain.build generator [1; 2; 3; 4; 5; 6].
+Definition chain := SGChain.build gen [1; 2; 3; 4; 5; 6].
 
 Eval cbv in str_join (str_hline 12) (map
   (λ gen, str_lines (map Cycles.print gen))

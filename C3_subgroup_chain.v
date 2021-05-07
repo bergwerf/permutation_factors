@@ -8,7 +8,7 @@ Module SGChain.
 
 Definition sieve4 := identity_sieve 4 xH.
 
-(* list of triples (A, k, V) where orbit V = orbit of k in ⟨A⟩). *)
+(* List of triples (gen, k, V) where orbit V = orbit of k in ⟨gen⟩). *)
 Definition chain := list (list perm × positive × Schreier.vector).
 
 Fixpoint loop sieve range gen ks :=
@@ -17,7 +17,7 @@ Fixpoint loop sieve range gen ks :=
   | [] => []
   | k :: ks' =>
     let V := Schreier.build gen k range in
-    let gen' := Schreier.generator gen k V in
+    let gen' := Schreier.generators gen k V in
     let gen'' := Sims.filter sieve range gen' in
     (gen, k, V) :: loop sieve range gen'' ks'
   end.

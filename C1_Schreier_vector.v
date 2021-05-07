@@ -22,6 +22,7 @@ Fixpoint extend (i : positive) (h : perm)
     end
   end.
 
+(* The generating set. *)
 Variable gen : list perm.
 
 (* Extend all numbers in the try list. *)
@@ -49,17 +50,18 @@ Fixpoint loop (V : vector) (try : list positive) (n : nat) :=
     end
   end.
 
+(* The stabilizer point. *)
 Variable k : positive.
 
 (* Build a full orbit vector for a given permutation range. *)
 Definition build (range : nat) :=
   loop (insert Leaf k ident) [k] range.
 
-(* The orbit given by they keys of the Scheier vector. *)
+(* The orbit given by they keys of the Schreier vector. *)
 Definition orbit (V : vector) : list positive := map fst (entries V xH).
 
-(* The subgroup generator given by Scheier's Lemma. *)
-Definition generator (V : vector) : list perm := map
+(* The subgroup generators according to Schreier's Lemma. *)
+Definition generators (V : vector) : list perm := map
   (λ a_u, let au := fst a_u ∘ snd a_u in inv (lookup V au⋅k ?? ident) ∘ au)
   (list_prod gen (values V)).
 

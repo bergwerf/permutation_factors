@@ -1,4 +1,4 @@
-(* A functional Sims-filter to reduce generator sets. *)
+(* A functional Sims-filter to reduce generating sets. *)
 
 From CGT Require Import A1_setup B1_finite_map B2_permutation.
 
