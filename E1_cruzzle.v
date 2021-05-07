@@ -1,6 +1,6 @@
 (* The Cruzzle puzzle. *)
 
-From CGT Require Import A1_setup A2_print B2_permutation C3_subgroup_chain.
+From CGT Require Import A1_setup A2_print B2_perm C3_subgroup_chain.
 
 (*
 ┏━━━┳━━━┳━━━┓

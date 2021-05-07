@@ -1,6 +1,6 @@
 (* A functional Schreier-vector to compute orbits. *)
 
-From CGT Require Import A1_setup B1_finite_map B2_permutation.
+From CGT Require Import A1_setup B1_fmap B2_perm.
 
 Module Schreier.
 

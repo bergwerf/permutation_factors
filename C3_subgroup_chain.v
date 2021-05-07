@@ -1,12 +1,10 @@
 (* The Schreier-Sims algorithm to factor a group into a chain of subgroups. *)
 
-From CGT Require Import A1_setup B1_finite_map B2_permutation.
+From CGT Require Import A1_setup B1_fmap B2_perm.
 From CGT Require Import C1_Schreier_vector C2_Sims_filter.
 
 (* Factor a group into a sub-group chain. *)
 Module SGChain.
-
-Definition sieve4 := identity_sieve 4 xH.
 
 (* List of triples (gen, k, V) where orbit V = orbit of k in ⟨gen⟩). *)
 Definition chain := list (list perm × positive × Schreier.vector).

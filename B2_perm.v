@@ -1,6 +1,6 @@
 (* Permutations as unbalanced binary trees (fmap). *)
 
-From CGT Require Import A1_setup A2_print B1_finite_map.
+From CGT Require Import A1_setup A2_print B1_fmap.
 
 (***
 :: Permutations ::
