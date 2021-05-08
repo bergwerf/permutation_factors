@@ -2,22 +2,28 @@
 
 From CGT Require Import A1_setup B1_fmap B2_perm.
 
-(* Letters to build permutations. *)
+(***
+:: Words ::
+
+We want to express permutations as words in the alphabet of generators. Letters
+are a generator or its inverse, and words are lists of letters. We use positive
+numbers to index generators for faster lookup and comparison of letters.
+*)
 Inductive letter :=
-  | Forward (i : nat)
-  | Inverse (i : nat).
+  | Forward (x : positive)
+  | Inverse (x : positive).
 
 Notation word := (list letter).
 
-(* Compare two generator letters. *)
+(* Compare two letters. *)
 Definition eqb_letter (a b : letter) :=
   match a, b with
-  | Forward i, Forward j => (i =? j)%nat
-  | Inverse j, Inverse i => (i =? j)%nat
+  | Forward i, Forward j => i =? j
+  | Inverse j, Inverse i => i =? j
   | _, _ => false
   end.
 
-(* Invert a generator letter. *)
+(* Invert a letter. *)
 Definition inv_letter (a : letter) :=
   match a with
   | Forward i => Inverse i
@@ -26,14 +32,6 @@ Definition inv_letter (a : letter) :=
 
 (* Invert a word. *)
 Definition inv_word (w : word) := rev (map inv_letter w).
-
-(* Produce a permutation from a word (generator inverses are not cached). *)
-Fixpoint generate (gen : list perm) (w : word) :=
-  match w with
-  | [] => ident
-  | Forward i :: w' => nth i gen ident ∘ generate gen w'
-  | Inverse i :: w' => inv (nth i gen ident) ∘ generate gen w'
-  end.
 
 (* Remove redundant permutations from a word. *)
 Fixpoint reduce (stack w : word) :=
@@ -50,11 +48,50 @@ Fixpoint reduce (stack w : word) :=
   end.
 
 (* Go to the next word given a reset index. *)
-Fixpoint next_word (n : nat) (w : word) :=
+Fixpoint next_word (reset : positive) (w : word) :=
   match w with
-  | [] => [Forward n]
-  | Forward (S i) :: w' => Forward i :: w'
-  | Forward O :: w'     => Inverse n :: w'
-  | Inverse (S i) :: w' => Inverse i :: w'
-  | Inverse O :: w'     => Forward n :: next_word n w'
+  | [] => [Forward reset]
+  | Forward 1 :: w' => Inverse reset :: w'
+  | Forward i :: w' => Forward (Pos.pred i) :: w'
+  | Inverse 1 :: w' => Forward reset :: next_word reset w'
+  | Inverse i :: w' => Inverse (Pos.pred i) :: w'
+  end.
+
+(***
+:: Word application ::
+
+When building words we can compose the generators corresponding to each letter
+to find the permutations they represent. But composition is expensive, and in
+the SGS (strong generating set) building algorithm by Minkwitz we only need to
+do specific lookups in the resulting permutations. I expect that the average
+word length will be short enough such that composition does not have an
+advantage over directly applying the generators one-by-one.
+*)
+Definition generators := fmap perm × fmap perm.
+
+(* Apply a word to a number. *)
+Fixpoint apply_word (gen : generators) (w : word) (i : positive) :=
+  match w with
+  | [] => i
+  | Forward x :: w' => apply_word gen w' (lookup (fst gen) x ?? ident)⋅i
+  | Inverse x :: w' => apply_word gen w' (lookup (snd gen) x ?? ident)⋅i
+  end.
+
+(* Build fast lookup map for a generating set. *)
+Definition prepare_generators (gen : list perm) : generators :=
+  fold_left (λ dst src, (
+    insert (fst dst) (fst src) (snd src),
+    insert (snd dst) (fst src) (inv (snd src))))
+    (combine (map Pos.of_nat (seq 1 (length gen))) gen)
+    (Leaf, Leaf).
+
+(* Optimized version of `length l1 <? length l2` to compare word lengths. *)
+Fixpoint smaller {X} (l1 l2 : list X) :=
+  match l2 with
+  | [] => false
+  | _ :: l2' =>
+    match l1 with
+    | [] => true
+    | _ :: l1' => smaller l1' l2'
+    end
   end.
