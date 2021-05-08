@@ -53,6 +53,21 @@ Definition step gen (state : word × table) : word × table × bool :=
     (w', T', finished T')
   end.
 
+(***
+:: Search space ::
+
+I believe that the search is certain to converge after checking all words of
+length at most n! (track the maximum word length along the subgroup chain). Of
+course in practice the search should converge _much_ faster. But in Coq all
+functions must terminate, so I would like to give a theoretical upper bound.
+Since every step checks the next word, I think this upper bound should be c^n!,
+where c is twice the size of the generating set.
+
+To repeat an operation such a large number of times I added iteration functions
+with an ealy termination boolean. I have not yet found a simple way to repeat
+c^n! times. The current implementation only repeats c*n! times.
+*)
+
 (* Repeat a task n times. *)
 Fixpoint iter {X} n (f : X -> X × bool) (x : X) : X × bool :=
   match n with
