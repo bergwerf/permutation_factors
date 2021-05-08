@@ -87,6 +87,14 @@ Fixpoint entries (f : fmap) (r : positive) :=
   | Node (Some v) fO fI => (mirror r, v) :: entries fO r~0 ++ entries fI r~1
   end.
 
+(* Count the number of entries. *)
+Fixpoint size (f : fmap) :=
+  match f with
+  | Leaf => O
+  | Node None fO fI => (size fO + size fI)%nat
+  | Node (Some v) fO fI => S (size fO + size fI)%nat
+  end.
+
 End Unbalanced_binary_tree.
 
 Arguments Leaf {_}.
@@ -96,6 +104,7 @@ Arguments insert {_}.
 Arguments lookup {_}.
 Arguments values {_}.
 Arguments entries {_}.
+Arguments size {_}.
 
 Notation ffun := (fmap positive).
 
