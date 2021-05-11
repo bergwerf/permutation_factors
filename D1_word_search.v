@@ -30,35 +30,71 @@ Fixpoint finished (T : table) :=
   | _ => false
   end.
 
+Section Fixed_generators.
+Variable gen : generators.
+Variable gen_size : positive.
+
+Section Fixed_max_length.
+Variable max_length : nat.
+
 (* Try to add the given permutation to the table. *)
-Fixpoint round (gen : generators) (T : table) (w : word) : table :=
-  match T with
+Fixpoint round (T : table) (w : word) : table :=
+  if length_lt_nat w max_length
+  then match T with
   | [] => []
   | (k, c, orbit) :: T' =>
     let j := apply_word gen w k in
     match lookup orbit j with
     | None => (k, pred c, insert orbit j (true, w)) :: T'
     | Some (_, w') =>
-      if smaller w w'
+      if length_lt_length w w'
       then (k, c, insert orbit j (true, w)) :: T'
-      else (k, c, orbit) :: round gen T' (reduce [] (inv_word w' ++ w))
+      else (k, c, orbit) :: round T' (reduce [] (inv_word w' ++ w))
     end
+  end else T.
+
+(* Clear all optimization flags in the given orbit. *)
+Fixpoint clear_flags (orbit : fmap (bool × word)) :=
+  match orbit with
+  | Leaf => Leaf
+  | Node None oO oI =>
+    Node None (clear_flags oO) (clear_flags oI)
+  | Node (Some (_, w)) oO oI =>
+    Node (Some (false, w)) (clear_flags oO) (clear_flags oI)
   end.
 
 (* Combine new short words for additional rounds. *)
-(* Definition recycle *)
+Fixpoint recycle (T : table) {struct T} : table :=
+  match T with
+  | [] => []
+  | (k, c, orbit) :: T' =>
+    let orbit_vals := values orbit in
+    let orbit_prod := list_prod orbit_vals orbit_vals in
+    let new_table := (k, c, clear_flags orbit) :: recycle T' in
+    let loop T' p :=
+      match p with ((f, w), (f', w')) =>
+        if orb f f'
+        then round T' (w ++ w')
+        else T'
+      end in
+    fold_left loop orbit_prod new_table
+  end.
 
 (* Fill higher orbits with results lower in the table. *)
 (* Definition fill_orbits *)
 
+End Fixed_max_length.
+
 (* Add the next word to the table. *)
-Definition step gen n (S : state) : state × bool :=
+Definition step l (S : state) : state × bool :=
   match S with
   | (w, T) =>
-    let w' := next_word n w in
-    let T' := round gen T w' in
+    let w' := next_word gen_size w in
+    let T' := round l T w' in
     (w', T', finished T')
   end.
+
+End Fixed_generators.
 
 (***
 :: Time bound ::
@@ -98,10 +134,10 @@ Definition initialize_triple (k : positive) (n : nat) :=
 
 (* Build a SGS table given a generating set and subgroup chain. *)
 Definition sgs bound (gen : list perm) (C : SGChain.chain) : table :=
-  let gen' := prepare_generators gen in
+  let G := prepare_generators gen in
   let n := Pos.of_nat (length gen) in
   let T := map (λ sg, initialize_triple (snd (fst sg)) (size (snd sg))) C in
-  let S := iter bound (step gen' n) ([], T) in
+  let S := iter bound (step G n 5) ([], T) in
   snd (fst S).
 
 End Algorithm.

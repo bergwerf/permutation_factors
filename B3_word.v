@@ -85,13 +85,29 @@ Definition prepare_generators (gen : list perm) : generators :=
     (combine (map Pos.of_nat (seq 1 (length gen))) gen)
     (Leaf, Leaf).
 
-(* Optimized version of `length l1 <? length l2` to compare word lengths. *)
-Fixpoint smaller {X} (l1 l2 : list X) :=
+(***
+I find it inelegant to repeatedly produce natural numbers for list length
+comparison, so I created these optimized functions.
+*)
+
+(* Optimized version of `length l <=? n`. *)
+Fixpoint length_le_nat {X} (l : list X) n :=
+  match l with
+  | [] => true
+  | _ :: l' =>
+    match n with
+    | O => false
+    | S m => length_le_nat l' m
+    end
+  end.
+
+(* Optimized version of `length l1 <? length l2`. *)
+Fixpoint length_lt_length {X} (l1 l2 : list X) :=
   match l2 with
   | [] => false
   | _ :: l2' =>
     match l1 with
     | [] => true
-    | _ :: l1' => smaller l1' l2'
+    | _ :: l1' => length_lt_length l1' l2'
     end
   end.
