@@ -21,7 +21,7 @@ when all generators are found. The triples carry the following information:
 *)
 Definition orbit := fmap (bool × word).
 Definition table := list (positive × nat × orbit).
-Definition state := word × table.
+Definition state := positive × nat × word × table.
 
 (* Determine if the table is filled out. *)
 Fixpoint finished (T : table) :=
@@ -114,12 +114,16 @@ Fixpoint fill_orbits (T : table) : fmap (list (positive × word)) × table :=
 End Fixed_max_length.
 
 (* Add the next word to the table. *)
-Definition step l (S : state) : state × bool :=
+Definition step s_reset (S : state) : state × bool :=
   match S with
-  | (w, T) =>
+  | (1, l, w, T0) =>
+    let T1 := recycle l T0 in
+    let T2 := snd (fill_orbits l T1) in
+    (s_reset, l + l / 4, w, T2, finished T2)%nat
+  | (s, l, w, T) =>
     let w' := next_word gen_size w in
     let T' := round l T w' in
-    (w', T', finished T')
+    (s - 1, l, w', T', finished T')
   end.
 
 End Fixed_generators.
@@ -161,11 +165,11 @@ Definition initialize_triple (k : positive) (n : nat) :=
   (k, pred n, @create (bool × word) k (true, [])).
 
 (* Build a SGS table given a generating set and subgroup chain. *)
-Definition sgs bound (gen : list perm) (C : SGChain.chain) : table :=
+Definition sgs bound s l (gen : list perm) (C : SGChain.chain) : table :=
   let G := prepare_generators gen in
   let n := Pos.of_nat (length gen) in
   let T := map (λ sg, initialize_triple (snd (fst sg)) (size (snd sg))) C in
-  let S := iter bound (step G n 5) ([], T) in
+  let S := iter bound (step G n s) (s, l, [], T) in
   snd (fst S).
 
 End Algorithm.
