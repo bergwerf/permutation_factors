@@ -19,7 +19,8 @@ when all generators are found. The triples carry the following information:
 - A map from an orbit value i to a flag f and a word w such that w is fully
   reduced and w maps k to i. The flag is used for periodic optimization.
 *)
-Definition table := list (positive × nat × fmap (bool × word)).
+Definition orbit := fmap (bool × word).
+Definition table := list (positive × nat × orbit).
 Definition state := word × table.
 
 (* Determine if the table is filled out. *)
@@ -39,49 +40,76 @@ Variable max_length : nat.
 
 (* Try to add the given permutation to the table. *)
 Fixpoint round (T : table) (w : word) : table :=
-  if length_lt_nat w max_length
+  if length_le_nat w max_length
   then match T with
   | [] => []
-  | (k, c, orbit) :: T' =>
+  | (k, c, Ok) :: T' =>
     let j := apply_word gen w k in
-    match lookup orbit j with
-    | None => (k, pred c, insert orbit j (true, w)) :: T'
+    match lookup Ok j with
+    | None => (k, pred c, insert Ok j (true, w)) :: T'
     | Some (_, w') =>
       if length_lt_length w w'
-      then (k, c, insert orbit j (true, w)) :: T'
-      else (k, c, orbit) :: round T' (reduce [] (inv_word w' ++ w))
+      then (k, c, insert Ok j (true, w)) :: T'
+      else (k, c, Ok) :: round T' (reduce [] (inv_word w' ++ w))
     end
   end else T.
 
 (* Clear all optimization flags in the given orbit. *)
-Fixpoint clear_flags (orbit : fmap (bool × word)) :=
-  match orbit with
+Fixpoint clear_flags (O : orbit) :=
+  match O with
   | Leaf => Leaf
-  | Node None oO oI =>
-    Node None (clear_flags oO) (clear_flags oI)
-  | Node (Some (_, w)) oO oI =>
-    Node (Some (false, w)) (clear_flags oO) (clear_flags oI)
+  | Node None OO OI =>
+    Node None (clear_flags OO) (clear_flags OI)
+  | Node (Some (_, w)) OO OI =>
+    Node (Some (false, w)) (clear_flags OO) (clear_flags OI)
   end.
 
 (* Combine new short words for additional rounds. *)
-Fixpoint recycle (T : table) {struct T} : table :=
+Fixpoint recycle (T : table) : table :=
   match T with
   | [] => []
-  | (k, c, orbit) :: T' =>
-    let orbit_vals := values orbit in
+  | (k, c, Ok) :: T' =>
+    let orbit_vals := values Ok in
     let orbit_prod := list_prod orbit_vals orbit_vals in
-    let new_table := (k, c, clear_flags orbit) :: recycle T' in
+    let new_table := (k, c, clear_flags Ok) :: recycle T' in
     let loop T' p :=
       match p with ((f, w), (f', w')) =>
-        if orb f f'
+        if f || f'
         then round T' (w ++ w')
         else T'
       end in
     fold_left loop orbit_prod new_table
   end.
 
-(* Fill higher orbits with results lower in the table. *)
-(* Definition fill_orbits *)
+(* Complete higher orbits with words lower in the table. *)
+Fixpoint fill_orbits (T : table) : fmap (list (positive × word)) × table :=
+  match T with
+  | [] => (Leaf, [])
+  | (k, c, Ok) :: T' =>
+    let (sub, T'') := fill_orbits T' in
+    let orbit_k := map (λ e, (fst e, snd (snd e))) (entries Ok xH) in
+    let loop cOk iw :=
+      match iw with (i, w) =>
+        match lookup sub i with
+        | None => cOk
+        | Some orbit_i =>
+          let loop' cOk' jw :=
+            match cOk', jw with (c', Ok'), (j, w') =>
+              match lookup Ok' j with
+              | Some _ => cOk'
+              | None =>
+                let w'' := w' ++ w in
+                if length_le_nat w'' max_length
+                then (pred c', insert Ok' j (true, w''))
+                else cOk'
+              end
+            end in
+          fold_left loop' orbit_i cOk
+        end
+      end in
+    let (c', Ok') := fold_left loop orbit_k (c, Ok) in
+    (insert sub k orbit_k, (k, c', Ok') :: T'')
+  end.
 
 End Fixed_max_length.
 
