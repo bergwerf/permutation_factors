@@ -115,15 +115,16 @@ End Fixed_max_length.
 
 (* Add the next word to the table. *)
 Definition step s_reset (S : state) : state × bool :=
-  match S with
-  | (1, l, w, T0) =>
-    let T1 := recycle l T0 in
-    let T2 := snd (fill_orbits l T1) in
-    (s_reset, l + Nat.max 1 (l / 4), w, T2, finished T2)%nat
-  | (s, l, w, T) =>
+  match S with (s, l, w, T) =>
     let w' := next_word gen_size w in
-    let T' := round l T w' in
-    (s - 1, l, w', T', finished T')
+    if (1 <? s) && length_le_nat w' l
+    then
+      let T' := round l T w' in
+      (s - 1, l, w', T', finished T')
+    else
+      let T' := recycle l T in
+      let T'' := snd (fill_orbits l T') in
+      (s_reset, l + Nat.max 1 (l / 4), w, T'', finished T'')%nat
   end.
 
 (* Find a word to describe the permutation w ∘ π. *)
