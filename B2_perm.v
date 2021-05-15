@@ -1,6 +1,6 @@
 (* Permutations as unbalanced binary trees (fmap). *)
 
-From CGT Require Import A1_setup A2_print B1_fmap.
+From CGT Require Import A1_setup B1_fmap.
 
 (***
 :: Permutations ::
@@ -80,16 +80,6 @@ Fixpoint render (π : perm) (c : cycle) :=
 
 Definition pack (cs : list cycle) : perm :=
   fold_left (λ σ πi, πi ∘ σ) (map (render ident) cs) ident.
-
-(***
-Convert permutation map to string.
-*)
-
-Definition print_cycle (c : cycle) :=
-  ("(" ++ str_join " " (map str_itoa (removelast c)) ++ ")")%string.
-
-Definition print (π : perm) :=
-  (str_join " " (map print_cycle (unpack π)))%string.
 
 (***
 Theorems

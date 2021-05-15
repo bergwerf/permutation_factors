@@ -7,7 +7,8 @@ From CGT Require Import A1_setup B1_fmap B2_perm.
 
 We want to express permutations as words in the alphabet of generators. Letters
 are a generator or its inverse, and words are lists of letters. We use positive
-numbers to index generators for faster lookup and comparison of letters.
+numbers to index generators for faster lookup and comparison of letters. In this
+implementation words are written in the order of application!
 *)
 Inductive letter :=
   | Forward (x : positive)

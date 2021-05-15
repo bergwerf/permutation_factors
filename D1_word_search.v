@@ -50,7 +50,7 @@ Fixpoint round (T : table) (w : word) : table :=
     | Some (_, w') =>
       if length_lt_length w w'
       then (k, c, insert Ok j (true, w)) :: T'
-      else (k, c, Ok) :: round T' (reduce [] (inv_word w' ++ w))
+      else (k, c, Ok) :: round T' (reduce [] (w ++ inv_word w'))
     end
   end else T.
 
@@ -98,7 +98,7 @@ Fixpoint fill_orbits (T : table) : fmap (list (positive × word)) × table :=
               match lookup Ok' j with
               | Some _ => cOk'
               | None =>
-                let w'' := w' ++ w in
+                let w'' := w ++ w' in
                 if length_le_nat w'' max_length
                 then (pred c', insert Ok' j (true, w''))
                 else cOk'
@@ -119,7 +119,7 @@ Definition step s_reset (S : state) : state × bool :=
   | (1, l, w, T0) =>
     let T1 := recycle l T0 in
     let T2 := snd (fill_orbits l T1) in
-    (s_reset, l + l / 4, w, T2, finished T2)%nat
+    (s_reset, l + Nat.max 1 (l / 4), w, T2, finished T2)%nat
   | (s, l, w, T) =>
     let w' := next_word gen_size w in
     let T' := round l T w' in
