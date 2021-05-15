@@ -68,6 +68,7 @@ revert it back into the identity permutation.
 ┣━━━╋━━━╋━━━┫
 ┃ 3 ┃ 4 ┃ 2 ┃
 ┗━━━┻━━━┻━━━┛
+Solution: -V3-H2-V3+H2-V1-H1+V1-H1-V2.
 *)
 Eval cbv in
   let π := create_perm [5; 1; 6; 3; 4; 2] in
