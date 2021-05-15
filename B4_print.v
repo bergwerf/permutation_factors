@@ -35,8 +35,8 @@ Print a word using a list of letter names.
 
 Definition print_letter (names : list string) (l : letter) :=
   match l with
-  | Forward i => nth (Pos.to_nat i) names (print_positive i) ++ "+"
-  | Inverse i => nth (Pos.to_nat i) names (print_positive i) ++ "-"
+  | Forward i => "+" ++ nth (Pos.to_nat i) names (print_positive i)
+  | Inverse i => "-" ++ nth (Pos.to_nat i) names (print_positive i)
   end.
 
 Definition print_word names w := str_concat (map (print_letter names) w).

@@ -22,6 +22,13 @@ Definition perm := ffun.
 Definition ident : perm := Leaf.
 
 (***
+Build a permutation from a list.
+*)
+Definition create_perm (l : list positive) :=
+  fold_left (λ π ij, match ij with (i, j) => insert π i j end)
+    (combine (map Pos.of_nat (seq 1 (length l))) l) Leaf.
+
+(***
 :: Cycle notation ::
 
 Permutations are often written as compositions of cycles. For example the cycle

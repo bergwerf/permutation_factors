@@ -7,8 +7,7 @@ From CGT Require Import A1_setup B1_fmap B2_perm.
 
 We want to express permutations as words in the alphabet of generators. Letters
 are a generator or its inverse, and words are lists of letters. We use positive
-numbers to index generators for faster lookup and comparison of letters. In this
-implementation words are written in the order of application!
+numbers to index generators for faster lookup and comparison of letters.
 *)
 Inductive letter :=
   | Forward (x : positive)
@@ -74,8 +73,8 @@ Definition generators := fmap perm × fmap perm.
 Fixpoint apply_word (gen : generators) (w : word) (i : positive) :=
   match w with
   | [] => i
-  | Forward x :: w' => apply_word gen w' (lookup (fst gen) x ?? ident)⋅i
-  | Inverse x :: w' => apply_word gen w' (lookup (snd gen) x ?? ident)⋅i
+  | Forward x :: w' => (lookup (fst gen) x ?? ident)⋅(apply_word gen w' i)
+  | Inverse x :: w' => (lookup (snd gen) x ?? ident)⋅(apply_word gen w' i)
   end.
 
 (* Build fast lookup map for a generating set. *)

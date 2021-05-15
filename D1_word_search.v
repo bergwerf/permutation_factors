@@ -50,7 +50,7 @@ Fixpoint round (T : table) (w : word) : table :=
     | Some (_, w') =>
       if length_lt_length w w'
       then (k, c, insert Ok j (true, w)) :: T'
-      else (k, c, Ok) :: round T' (reduce [] (w ++ inv_word w'))
+      else (k, c, Ok) :: round T' (reduce [] (inv_word w' ++ w))
     end
   end else T.
 
@@ -98,7 +98,7 @@ Fixpoint fill_orbits (T : table) : fmap (list (positive × word)) × table :=
               match lookup Ok' j with
               | Some _ => cOk'
               | None =>
-                let w'' := w ++ w' in
+                let w'' := w' ++ w in
                 if length_le_nat w'' max_length
                 then (pred c', insert Ok' j (true, w''))
                 else cOk'
@@ -124,6 +124,22 @@ Definition step s_reset (S : state) : state × bool :=
     let w' := next_word gen_size w in
     let T' := round l T w' in
     (s - 1, l, w', T', finished T')
+  end.
+
+(* Find a word to describe the permutation w ∘ π. *)
+Fixpoint find_word (T : table) (w : word) (π : perm) :=
+  match T with
+  | [] => Some []
+  | (k, _, orbit) :: T' =>
+    let j := apply_word gen w π⋅k in
+    match lookup orbit j with
+    | Some (_, w_hd) =>
+      match  find_word T' (inv_word w_hd ++ w) π with
+      | Some w_tl => Some (w_hd ++ w_tl)
+      | None => None
+      end
+    | None => None
+    end
   end.
 
 End Fixed_generators.
@@ -171,6 +187,13 @@ Definition sgs bound s l (gen : list perm) (C : SGChain.chain) : table :=
   let T := map (λ sg, initialize_triple (snd (fst sg)) (size (snd sg))) C in
   let S := iter bound (step G n s) (s, l, [], T) in
   snd (fst S).
+
+(* Find a permutation word using a strong generating set, and reduce it. *)
+Definition describe (gen : list perm) (T : table) π : option word :=
+  match find_word (prepare_generators gen) T [] π with
+  | Some w => Some (reduce [] w)
+  | None => None
+  end.
 
 End Algorithm.
 
