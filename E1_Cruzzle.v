@@ -15,16 +15,13 @@ Local Open Scope string_scope.
 *)
 Section Two_by_three.
 
+Definition gen_names := ["e"; "h1"; "h2"; "v1"; "v2"; "v3"].
 Definition gen : list perm := map Cycles.pack [
   [[1; 2; 3; 1]];
   [[4; 5; 6; 4]];
   [[1; 4; 1]];
   [[2; 5; 2]];
   [[3; 6; 3]]
-].
-
-Definition gen_names : list string := [
-  "e"; "H1"; "H2"; "V1"; "V2"; "V3"
 ].
 
 Definition range := [1; 2; 3; 4; 5; 6].
@@ -50,13 +47,13 @@ Eval cbv in print_table "│" [" "; "─"] (
     range
   end) sgs).
 (*
-│   │ 1 │ 2   │ 3         │ 4      │ 5      │ 6               │
-│───│───│─────│───────────│────────│────────│─────────────────│
-│ 1 │   │ +H1 │ -H1       │ +V1    │ +V2+H1 │ -H2+V1          │
-│ 2 │   │     │ -V1+H1+V1 │ -H2+V2 │ +V2    │ +H2+V2          │
-│ 3 │   │     │           │ +H2+V3 │ -H2+V3 │ +V3             │
-│ 4 │   │     │           │        │ +H2    │ -H2             │
-│ 5 │   │     │           │        │        │ -V3-H2+V3+H2+V3 │
+│   │ 1 │ 2  │ 3       │ 4     │ 5     │ 6            │
+│───│───│────│─────────│───────│───────│──────────────│
+│ 1 │   │ h1 │ h1'     │ v1    │ v2h1  │ h2'v1        │
+│ 2 │   │    │ v1'h1v1 │ h2'v2 │ v2    │ h2v2         │
+│ 3 │   │    │         │ h2v3  │ h2'v3 │ v3           │
+│ 4 │   │    │         │       │ h2    │ h2'          │
+│ 5 │   │    │         │       │       │ v3'h2'v3h2v3 │
 *)
 
 (***
@@ -68,7 +65,7 @@ revert it back into the identity permutation.
 ┣━━━╋━━━╋━━━┫
 ┃ 3 ┃ 4 ┃ 2 ┃
 ┗━━━┻━━━┻━━━┛
-Solution: -V3-H2-V3+H2-V1-H1+V1-H1-V2.
+Solution: v3'h2'v3'h2v1'h1'v1h1'v2'.
 *)
 Eval cbv in
   let π := create_perm [5; 1; 6; 3; 4; 2] in
