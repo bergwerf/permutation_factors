@@ -18,6 +18,7 @@ Fixpoint str_join sep l :=
 Definition print_hline n := str_concat (repeat "-" n).
 Definition print_lines ls := str_lf ++ str_concat (map (λ l, l ++ str_lf) ls).
 Definition print_positive i := NilZero.string_of_uint (Pos.to_uint i).
+Definition print_csv table := print_lines (map (str_join ",") table).
 
 (***
 Print a permutation using cycle notation.
@@ -42,7 +43,7 @@ Definition print_letter (names : list string) (l : letter) :=
 Definition print_word names w := str_concat (map (print_letter names) w).
 
 (***
-Print a table as a list of rows with aligned columns.
+Print a table with aligned columns and column separators.
 *)
 Section Print_table.
 

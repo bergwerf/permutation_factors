@@ -179,18 +179,32 @@ Fixpoint iter {X} n (f : X -> X × bool) (x : X) : X × bool :=
 
 (* Initialize a triple given the stabilizer point k and orbit size n. *)
 Definition initialize_triple (k : positive) (n : nat) :=
-  (k, pred n, @create (bool × word) k (true, [])).
+  (k, pred n, @create (bool × word) k (false, [])).
 
-(* Build a SGS table given a generating set and subgroup chain. *)
-Definition sgs bound s l (gen : list perm) (C : SGChain.chain) : table :=
+(* Convert a subgroup chain to an orbit table. *)
+Definition save_orbits (C : SGChain.chain) :=
+  map (λ sg, match sg with (_, k, V) => (k, size V) end) C.
+
+(* Create an empty search table from an orbit table. *)
+Definition initialize (orbits : list (positive × nat)) :=
+  map (λ kn, initialize_triple (fst kn) (snd kn)) orbits.
+
+(***
+Fill an SGS table.
+- T: The table to fill.
+- gen: The generating set.
+- bound: Maximum number of steps.
+- s: Macro step size; recycle and orbit filling are done after every s steps.
+- l: Initial maximum word length; rounds are terminated beyond this length.
+*)
+Definition fill (T : table) (gen : list perm) bound s l : table :=
   let G := prepare_generators gen in
   let n := Pos.of_nat (length gen) in
-  let T := map (λ sg, initialize_triple (snd (fst sg)) (size (snd sg))) C in
   let S := iter bound (step G n s) (s, l, [], T) in
   snd (fst S).
 
 (* Find a permutation word using a strong generating set, and reduce it. *)
-Definition describe (gen : list perm) (T : table) π : option word :=
+Definition factorize (T : table) (gen : list perm)  π : option word :=
   match find_word (prepare_generators gen) T [] π with
   | Some w => Some (reduce [] w)
   | None => None
