@@ -1,6 +1,6 @@
 (* Rubik's cube. *)
 
-From CGT Require Import A1_setup B1_fmap B2_perm B3_word B4_print.
+From CGT Require Import A1_setup B1_fmap B2_perm B3_word B5_print.
 From CGT Require Import C3_subgroup_chain D1_word_search.
 
 Require Import String.

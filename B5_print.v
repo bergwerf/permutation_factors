@@ -1,4 +1,4 @@
-(* String printing utilities. *)
+(* String printing facilities. *)
 
 From CGT Require Import A1_setup B2_perm B3_word.
 Require Import Byte Ascii String DecimalString.

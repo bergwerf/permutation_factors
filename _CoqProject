@@ -6,7 +6,8 @@ A1_setup.v
 B1_fmap.v
 B2_perm.v
 B3_word.v
-B4_print.v
+B4_group.v
+B5_print.v
 
 C1_Schreier_vector.v
 C2_Sims_filter.v
