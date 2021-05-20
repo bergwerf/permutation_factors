@@ -176,24 +176,41 @@ practice if pruning actually provides a net speed-up.
 
 Note that pruning is a straightforward method to determine if a given map is an
 identity function. This is used in the Sims filter, which is therefore a natural
-point for pruning.
+point for pruning. For theorem proving we use slower pruning (without a sieve)
+since it turns every function into a canonical form.
 *)
 
 (* A pruned function tree contains no explicit identity mappings. *)
-Fixpoint Pruned (f : ffun) (r : positive) :=
+Fixpoint Pruned (r : positive) (f : ffun) :=
   match f with
   | Leaf => True
   | Node i_opt fO fI =>
-    Pruned fO r~0 /\
-    Pruned fI r~1 /\
+    Pruned r~0 fO /\
+    Pruned r~1 fI /\
     match i_opt with
     | Some i => i ≠ mirror r
     | None => True
     end
   end.
 
-(* Remove the mappings in f that are also in s. *)
-Fixpoint sift (f sieve : ffun) :=
+(* Remove identity mappings from f. *)
+Fixpoint prune (r : positive) (f : ffun) :=
+  let collapse := λ (fO fI : ffun),
+    match fO, fI with
+    | Leaf, Leaf => Leaf
+    | fO', fI' => Node None fO' fI'
+    end
+  in match f with
+  | Leaf => Leaf
+  | Node None fO fI => collapse (prune r~0 fO) (prune r~1 fI)
+  | Node (Some i) fO fI =>
+    if i =? mirror r
+    then collapse (prune r~0 fO) (prune r~1 fI)
+    else Node (Some i) (prune r~0 fO) (prune r~1 fI)
+  end.
+
+(* Remove mappings in f that are also in s. *)
+Fixpoint sift (sieve f : ffun) :=
   let collapse := λ (fO fI : ffun),
     match fO, fI with
     | Leaf, Leaf => Leaf
@@ -204,14 +221,14 @@ Fixpoint sift (f sieve : ffun) :=
   | Node i_opt sO sI =>
     match f with
     | Leaf => Leaf
-    | Node None fO fI => collapse (sift fO sO) (sift fI sI)
+    | Node None fO fI => collapse (sift sO fO) (sift sI fI)
     | Node (Some j) fO fI =>
       match i_opt with
       | Some i =>
         if i =? j
-        then collapse (sift fO sO) (sift fI sI)
-        else Node (Some j) (sift fO sO) (sift fI sI)
-      | None => Node (Some j) (sift fO sO) (sift fI sI)
+        then collapse (sift sO fO) (sift sI fI)
+        else Node (Some j) (sift sO fO) (sift sI fI)
+      | None => Node (Some j) (sift sO fO) (sift sI fI)
       end
     end
   end.

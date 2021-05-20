@@ -1,12 +1,11 @@
 (* A functional Schreier-vector to compute orbits. *)
 
-From CGT Require Import A1_setup B1_fmap B2_perm.
+From CGT Require Import A1_setup B1_fmap B2_perm B4_group.
 
 Module Schreier.
+Section Vector.
 
 Definition vector := fmap perm.
-
-Section Algorithm.
 
 (* Add all numbers reachable from i. *)
 Fixpoint extend (i : positive) (h : perm)
@@ -65,6 +64,21 @@ Definition generators (V : vector) : list perm := map
   (λ a_u, let au := fst a_u ∘ snd a_u in inv (lookup V au⋅k ?? ident) ∘ au)
   (list_prod gen (values V)).
 
-End Algorithm.
+(***
+Theorems
+*)
 
+Section Schreiers_lemma.
+
+Variable range : nat.
+Hypothesis finished : ∀ran, (ran > range)%nat -> build ran = build range.
+
+Theorem spec π :
+  In_Group gen π /\ π⋅k = k <-> In_Group (generators (build range)) π.
+Proof.
+Admitted.
+
+End Schreiers_lemma.
+
+End Vector.
 End Schreier.

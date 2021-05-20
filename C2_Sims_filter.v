@@ -3,10 +3,9 @@
 From CGT Require Import A1_setup B1_fmap B2_perm.
 
 Module Sims.
+Section Filter.
 
 Definition table := fmap (fmap perm).
-
-Section Algorithm.
 
 (* Find the smallest mapping in π. *)
 Fixpoint minmap (π : perm) : option (positive × positive) :=
@@ -30,7 +29,7 @@ Fixpoint crack (T : table) (range : nat) (g : perm) :=
   match range with
   | O => T
   | S ran =>
-    let g' := sift g sieve in
+    let g' := sift sieve g in
     match minmap g' with
     | None => T
     | Some (i, j) =>
@@ -56,6 +55,5 @@ Fixpoint loop (gen : list perm) (T : table) :=
 Definition filter (gen : list perm) :=
   flat_map values (values (loop gen Leaf)).
 
-End Algorithm.
-
+End Filter.
 End Sims.
