@@ -52,16 +52,17 @@ Fixpoint loop (V : vector) (try : list positive) (n : nat) :=
 (* The stabilizer point. *)
 Variable k : positive.
 
-(* Build a full orbit vector for a given permutation range. *)
-Definition build (range : nat) :=
-  loop (insert Leaf k ident) [k] range.
+(* Build an orbit vector given an orbit size bound. *)
+Definition build (bound : nat) :=
+  loop (insert Leaf k ident) [k] bound.
 
 (* The orbit given by they keys of the Schreier vector. *)
 Definition orbit (V : vector) : list positive := map fst (entries V xH).
 
 (* The subgroup generators according to Schreier's Lemma. *)
-Definition generators (V : vector) : list perm := map
-  (λ a_u, let au := fst a_u ∘ snd a_u in inv (lookup V au⋅k ?? ident) ∘ au)
+Definition generators (V : vector) : list perm :=
+  let ϕ := mapval inv V in map
+  (λ a_u, let au := fst a_u ∘ snd a_u in (lookup ϕ au⋅k ?? ident) ∘ au)
   (list_prod gen (values V)).
 
 (***
@@ -70,11 +71,11 @@ Theorems
 
 Section Schreiers_lemma.
 
-Variable range : nat.
-Hypothesis finished : ∀ran, (ran > range)%nat -> build ran = build range.
+Definition theoretical_range := size (union_range gen).
+Definition subgroup_gen := generators (build theoretical_range).
 
 Theorem spec π :
-  In_Group gen π /\ π⋅k = k <-> In_Group (generators (build range)) π.
+  Generates gen π /\ π⋅k = k <-> Generates subgroup_gen π.
 Proof.
 Admitted.
 

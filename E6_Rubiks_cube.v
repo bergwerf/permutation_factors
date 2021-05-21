@@ -43,8 +43,7 @@ Definition gen : list perm := map Cycles.pack [
   rotation 46 47 48 51 54 53 52 49   25 26 27   34 35 36   43 44 45   16 17 18
 ].
 
-Definition union := λ f i, insert f i i.
-Definition range := values (fold_left union (flat_map values gen) Leaf).
+Definition range := values (union_range gen).
 Definition chain := SGChain.build gen range.
 
 (* Computing this subgroup chain takes around half a minute. *)

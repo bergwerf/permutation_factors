@@ -14,7 +14,7 @@ Fixpoint loop sieve range gen ks :=
   else match ks with
   | [] => []
   | k :: ks' =>
-    let V := Schreier.build gen k range in
+    let V := Schreier.build gen k (length ks) in
     let gen' := Schreier.generators gen k V in
     let gen'' := Sims.filter sieve range gen' in
     (gen, k, V) :: loop sieve range gen'' ks'
@@ -22,8 +22,8 @@ Fixpoint loop sieve range gen ks :=
 
 Definition build gen ks :=
   let range := fold_left Pos.max ks 1 in
-  let width := Pos.size_nat range in
-  let sieve := identity_sieve width xH in
+  let depth := Pos.size_nat range in
+  let sieve := identity_sieve depth xH in
   loop sieve (Pos.to_nat range) gen ks.
 
 End SGChain.

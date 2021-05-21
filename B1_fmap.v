@@ -36,8 +36,16 @@ Variable V : Type.
 Inductive fmap := Leaf | Node (val : option V) (fO fI : fmap).
 
 (***
-Insert and lookup mappings
+Generic operations
 *)
+
+(* Count the number of entries. *)
+Fixpoint size (f : fmap) :=
+  match f with
+  | Leaf => O
+  | Node None fO fI => (size fO + size fI)%nat
+  | Node (Some v) fO fI => S (size fO + size fI)%nat
+  end.
 
 (* Create a map that only maps key to val. *)
 Fixpoint create (key : positive) (val : V) :=
@@ -87,24 +95,25 @@ Fixpoint entries (f : fmap) (r : positive) :=
   | Node (Some v) fO fI => (mirror r, v) :: entries fO r~0 ++ entries fI r~1
   end.
 
-(* Count the number of entries. *)
-Fixpoint size (f : fmap) :=
+(* Apply a transformation to all values. *)
+Fixpoint mapval (t : V -> V) (f : fmap) :=
   match f with
-  | Leaf => O
-  | Node None fO fI => (size fO + size fI)%nat
-  | Node (Some v) fO fI => S (size fO + size fI)%nat
+  | Leaf => Leaf
+  | Node (Some v) fO fI => Node (Some (t v)) (mapval t fO) (mapval t fI)
+  | Node None fO fI => Node None (mapval t fO) (mapval t fI)
   end.
 
 End Unbalanced_binary_tree.
 
 Arguments Leaf {_}.
 Arguments Node {_}.
+Arguments size {_}.
 Arguments create {_}.
 Arguments insert {_}.
 Arguments lookup {_}.
 Arguments values {_}.
 Arguments entries {_}.
-Arguments size {_}.
+Arguments mapval {_}.
 
 Notation ffun := (fmap positive).
 
@@ -124,26 +133,19 @@ Notation "f ⋅ i" := (apply f i) (at level 5, format "f ⋅ i").
 Function composition
 *)
 
-(* Apply g to all mappings in f. *)
-Fixpoint map_ffun (g f : ffun) :=
-  match f with
-  | Leaf => Leaf
-  | Node (Some i) fO fI => Node (Some g⋅i) (map_ffun g fO) (map_ffun g fI)
-  | Node None fO fI => Node None (map_ffun g fO) (map_ffun g fI)
-  end.
-
 (* Apply g after f. The initial input for g must be copied as gI. *)
 Fixpoint compose (gI g f : ffun) {struct f} :=
+  let map_apply g f := mapval (apply g) f in
   match f with
   | Leaf => g
   | Node (Some i) fO fI =>
     match g with
-    | Leaf => Node (Some gI⋅i) (map_ffun gI fO) (map_ffun gI fI)
+    | Leaf => Node (Some gI⋅i) (map_apply gI fO) (map_apply gI fI)
     | Node jO g0 g1 => Node (Some gI⋅i) (compose gI g0 fO) (compose gI g1 fI)
     end
   | Node None fO fI =>
     match g with
-    | Leaf => Node None (map_ffun gI fO) (map_ffun gI fI)
+    | Leaf => Node None (map_apply gI fO) (map_apply gI fI)
     | Node jO g0 g1 => Node jO (compose gI g0 fO) (compose gI g1 fI)
     end
   end.
@@ -156,6 +158,13 @@ Function inversion
 
 Definition inv f :=
   fold_left (λ f_inv e, insert f_inv (snd e) (fst e)) (entries f xH) Leaf.
+
+(***
+Union of the range of a list of functions.
+*)
+
+Definition union_range fs :=
+  fold_left (λ f i, insert f i i) (flat_map values fs) Leaf.
 
 (***
 :: Pruning ::
@@ -289,8 +298,8 @@ unfold apply; rewrite lookup_insert.
 rewrite Pos.eqb_refl; reflexivity.
 Qed.
 
-Lemma lookup_map_ffun_None g f i :
-  lookup f i = None -> lookup (map_ffun g f) i = None.
+Lemma lookup_mapval_apply_None g f i :
+  lookup f i = None -> lookup (mapval (apply g) f) i = None.
 Proof.
 revert i; fmap_induction f. easy.
 destruct i, j_opt as [j|]; simpl; try easy.
@@ -302,12 +311,12 @@ Lemma lookup_compose_None gI g f i :
 Proof.
 revert g i; fmap_induction f. easy.
 destruct j_opt as [j|], g, i; simpl; try easy.
-1,2,5,6: apply lookup_map_ffun_None, H.
+1,2,5,6: apply lookup_mapval_apply_None, H.
 all: try rewrite IHfI; try rewrite IHfO; easy.
 Qed.
 
-Lemma lookup_map_ffun_Some g f i j :
-  lookup f i = Some j -> lookup (map_ffun g f) i = Some g⋅j.
+Lemma lookup_mapval_apply_Some g f i j :
+  lookup f i = Some j -> lookup (mapval (apply g) f) i = Some g⋅j.
 Proof.
 revert g i; fmap_induction f. easy.
 destruct j_opt as [j'|], i; simpl; try congruence.
@@ -319,7 +328,7 @@ Lemma lookup_compose_Some gI g f i j :
 Proof.
 revert g i; fmap_induction f. easy.
 destruct j_opt as [j'|], g, i; simpl; try congruence.
-all: try apply lookup_map_ffun_Some; try apply IHfO; try apply IHfI; easy.
+all: try apply lookup_mapval_apply_Some; try apply IHfO; try apply IHfI; easy.
 Qed.
 
 Theorem apply_compose g f i :
