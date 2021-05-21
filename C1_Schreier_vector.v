@@ -71,11 +71,28 @@ Theorems
 
 Section Schreiers_lemma.
 
-Definition theoretical_range := size (union_range gen).
-Definition subgroup_gen := generators (build theoretical_range).
+Definition Sound (V : vector) := ∀i,
+  match lookup V i with Some π => Generates gen π /\ π⋅k = i | None => True end.
 
-Theorem spec π :
-  Generates gen π /\ π⋅k = k <-> Generates subgroup_gen π.
+Definition Complete (V : vector) :=
+  ∀i π, Generates gen π -> π⋅k = i -> lookup V i ≠ None.
+
+Theorem sound_build bound :
+  Sound (build bound).
+Proof.
+Admitted.
+
+Theorem complete_build bound :
+  (size (union_range gen) <= bound)%nat -> Complete (build bound).
+Proof.
+Admitted.
+
+Variable V : vector.
+Hypothesis sound : Sound V.
+Hypothesis complete : Complete V.
+
+Theorem generators_spec π :
+  Generates gen π /\ π⋅k = k <-> Generates (generators V) π.
 Proof.
 Admitted.
 

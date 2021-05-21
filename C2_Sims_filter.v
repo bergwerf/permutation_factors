@@ -1,6 +1,6 @@
 (* A functional Sims-filter to reduce generating sets. *)
 
-From CGT Require Import A1_setup B1_fmap B2_perm.
+From CGT Require Import A1_setup B1_fmap B2_perm B4_group.
 
 Module Sims.
 Section Filter.
@@ -54,6 +54,15 @@ Fixpoint loop (gen : list perm) (T : table) :=
 
 Definition filter (gen : list perm) :=
   flat_map values (values (loop gen Leaf)).
+
+(***
+Theorems
+*)
+
+Theorem filter_spec gen π :
+  Generates gen π <-> Generates (filter gen) π.
+Proof.
+Admitted.
 
 End Filter.
 End Sims.

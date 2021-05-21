@@ -45,4 +45,4 @@ exists (λ _, ident); repeat split; intros.
 destruct H as [[]]; simpl in H.
 exists 1; split; easy.
 destruct H; easy. lia.
-Qed.
+Defined.
