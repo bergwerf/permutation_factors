@@ -17,6 +17,9 @@ Notation "'Σ' x .. y , P" := (sigT (λ x, .. (sigT (λ y, P)) ..))
 (* Cartesian products. *)
 Notation "A × B" := (prod A B) (at level 100).
 
+(* List inclusion. *)
+Notation "l ⊆ m" := (incl l m) (at level 70).
+
 (* Option unpacking. *)
 Notation "opt ?? d" :=
   (match opt with Some v => v | None => d end)

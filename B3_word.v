@@ -5,10 +5,52 @@ From CGT Require Import A1_setup B1_fmap B2_perm.
 (***
 :: Words ::
 
-We want to express permutations as words in the alphabet of generators. Letters
-are a generator or its inverse, and words are lists of letters. We use positive
-numbers to index generators for faster lookup and comparison of letters.
+We want to express permutations as words in an alphabet of generators. In this
+file we implement two types of words: (1) Lists of permutations which are
+contained in a list of generators. These words are used in proofs. (2) Lists of
+letters with positive indices. These words are used for the strong generating
+set filling algorithm. The inverse of a generator is part of the alphabet
+because inverting words is essential. For fast application of these words we
+store generators and their inverses in a lookup map.
 *)
+
+(* Apply a list of permutations to index i. *)
+Notation apply' w i := (fold_right apply i w).
+
+(* Compose a list of permutations. *)
+Notation compose' w := (fold_right (λ σ π, σ ∘ π) ident w).
+
+(***
+:: Bounded length of orbit words ::
+
+The orbit of k consists of all points that are reachable from k using a
+generator. We can imagine all moving points (the objects that are permuted) as
+nodes in a graph which are connected by permutations. An edge between two nodes
+may be labelled with multiple permutations, and one permutation might occur at
+multiple edges. Every word forms a path in this graph, connecting different
+pairs of points. We claim that the orbit of k is fully determined when all words
+with length at most the number of points in the graph have been accounted for.
+
+Using the pigeon-hole principle we can determine for any two points i and j; if
+i and j are connected by some word, then there exists a connecting word between
+them with length at most the total number of points in the graph. Furthermore,
+we can make sure that this word never visits the same point twice.
+*)
+
+(* The points visited by word w starting at point i. *)
+Fixpoint visited_points w i :=
+  match w with
+  | [] => []
+  | σ :: w' => let j := σ⋅i in j :: visited_points w' j
+  end.
+
+(* Remove cycles from a connecting word. *)
+Theorem short_orbit_word w i :
+  ∃w', w' ⊆ w /\ NoDup (visited_points w' i) /\ apply' w' i = apply' w i.
+Proof.
+Admitted.
+
+(* Letters for invertible words and fast operations. *)
 Inductive letter :=
   | Forward (x : positive)
   | Inverse (x : positive).

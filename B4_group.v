@@ -15,18 +15,11 @@ Section Groups.
 Notation can := (prune xH).
 Notation Canonical := (Pruned xH).
 
-(* The generating set of the group. *)
+(* The generating set. *)
 Variable gen : list perm.
 
-(* Generator range for a bounded number of compositions. *)
-Fixpoint Generates_in n π :=
-  match n with
-  | O => can π = ident
-  | S m => ∃σ, In σ gen /\ Generates_in m (σ ∘ π)
-  end.
-
-(* Generator range for an unbounded number of compositions. *)
-Definition Generates π := ∃n, Generates_in n π.
+(* A permutation can be composed from the generating set. *)
+Definition Generates π := ∃w, w ⊆ gen /\ can π = compose' w.
 
 (* The number of distinct permutations that are generated. *)
 Record Group_Order (ord : positive) := Group_Order_Witness {
@@ -44,5 +37,6 @@ Proof.
 exists (λ _, ident); repeat split; intros.
 destruct H as [[]]; simpl in H.
 exists 1; split; easy.
-destruct H; easy. lia.
+destruct H as [[]].
+apply in_eq. lia.
 Defined.

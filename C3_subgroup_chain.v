@@ -14,7 +14,7 @@ Fixpoint loop sieve range gen ks :=
   else match ks with
   | [] => []
   | k :: ks' =>
-    let V := Schreier.build gen k (length ks) in
+    let V := Schreier.build gen k range in
     let gen' := Schreier.generators gen k V in
     let gen'' := Sims.filter sieve range gen' in
     (gen, k, V) :: loop sieve range gen'' ks'

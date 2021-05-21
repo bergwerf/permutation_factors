@@ -53,6 +53,7 @@ Fixpoint loop (V : vector) (try : list positive) (n : nat) :=
 Variable k : positive.
 
 (* Build an orbit vector given an orbit size bound. *)
+(* Note that it doesn't make a difference if the bound is bigger than needed. *)
 Definition build (bound : nat) :=
   loop (insert Leaf k ident) [k] bound.
 
@@ -71,11 +72,15 @@ Theorems
 
 Section Schreiers_lemma.
 
+(* The orbit permutations are valid. *)
 Definition Sound (V : vector) := ∀i,
-  match lookup V i with Some π => Generates gen π /\ π⋅k = i | None => True end.
+  match lookup V i with
+  | Some π => Generates gen π /\ π⋅k = i
+  | None => True
+  end.
 
-Definition Complete (V : vector) :=
-  ∀i π, Generates gen π -> π⋅k = i -> lookup V i ≠ None.
+(* The vector contains the full orbit. *)
+Definition Complete (V : vector) := ∀π, Generates gen π -> lookup V π⋅k ≠ None.
 
 Theorem sound_build bound :
   Sound (build bound).
