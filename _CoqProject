@@ -2,6 +2,7 @@
 -R . CGT
 
 A1_setup.v
+A2_lists.v
 
 B1_fmap.v
 B2_perm.v

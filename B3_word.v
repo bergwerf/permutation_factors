@@ -1,24 +1,26 @@
 (* Definition and manipulation of generator words. *)
 
-From CGT Require Import A1_setup B1_fmap B2_perm.
+From CGT Require Import A1_setup A2_lists B1_fmap B2_perm.
+Require Import Lia.
 
 (***
 :: Words ::
 
 We want to express permutations as words in an alphabet of generators. In this
 file we implement two types of words: (1) Lists of permutations which are
-contained in a list of generators. These words are used in proofs. (2) Lists of
-letters with positive indices. These words are used for the strong generating
-set filling algorithm. The inverse of a generator is part of the alphabet
+contained in a list of generators. These words are used in proofs and use
+left-to-right composition! (2) Lists of letters with positive indices. These
+words are used for the strong generating set filling algorithm and use
+right-to-left composition. The inverse of a generator is part of the alphabet
 because inverting words is essential. For fast application of these words we
 store generators and their inverses in a lookup map.
 *)
 
 (* Apply a list of permutations to index i. *)
-Notation apply' w i := (fold_right apply i w).
+Notation apply' := (fold_left (λ i f, f⋅i)).
 
 (* Compose a list of permutations. *)
-Notation compose' w := (fold_right (λ σ π, σ ∘ π) ident w).
+Notation compose' w := (fold_left (λ π σ, σ ∘ π) w ident).
 
 (***
 :: Bounded length of orbit words ::
@@ -37,18 +39,51 @@ them with length at most the total number of points in the graph. Furthermore,
 we can make sure that this word never visits the same point twice.
 *)
 
+Local Close Scope positive.
+
 (* The points visited by word w starting at point i. *)
-Fixpoint visited_points w i :=
-  match w with
-  | [] => []
-  | σ :: w' => let j := σ⋅i in j :: visited_points w' j
-  end.
+Definition visited_points w i :=
+  map (λ n, apply' (firstn n w) i) (seq 1 (length w)).
+
+Lemma remove_cycle w i j j0 j1 j2 :
+  visited_points w i = j0 ++ j :: j1 ++ j :: j2 ->
+  ∃w', w' ⊆ w /\ length w' < length w /\ apply' w' i = apply' w i.
+Proof.
+pose(n0 := length j0); pose(n1 := length j1); pose(n2 := length j2).
+unfold visited_points; intros.
+assert(length w = n0 + 1 + n1 + 1 + n2). {
+  assert(E := wd (@length _) _ _ H).
+  rewrite map_length, seq_length in E; rewrite E.
+  repeat (rewrite app_length; simpl); lia. }
+(* Cut the visited points list into parts. *)
+rewrite H0, ?seq_app, ?map_app, <-?app_assoc in H.
+replace (j0 ++ _) with (j0 ++ [j] ++ j1 ++ [j] ++ j2) in H by easy.
+apply app_cut in H as [? H]. apply app_cut in H as [? H].
+apply app_cut in H as [? H]. apply app_cut in H as [? H].
+apply map_singleton_eq in H2, H4; clear H1 H3 H.
+2-5: rewrite map_length, seq_length; easy.
+(* Give the shortened word. *)
+exists (firstn (1 + n0) w ++ skipn (1 + (n0 + 1 + n1)) w); repeat split.
++ apply incl_app. apply firstn_incl. apply skipn_incl.
++ rewrite app_length, firstn_length, skipn_length; lia.
++ rewrite fold_left_app, H2, <-H4.
+  rewrite <-fold_left_skipn; easy.
+Qed.
 
 (* Remove cycles from a connecting word. *)
-Theorem short_orbit_word w i :
+Theorem short_connecting_word w i :
   ∃w', w' ⊆ w /\ NoDup (visited_points w' i) /\ apply' w' i = apply' w i.
 Proof.
-Admitted.
+revert w; apply lt_length_wf_ind; intros w IH.
+destruct (nodup_dec _ Pos.eq_dec (visited_points w i)).
+exists w; easy. destruct e as [j0 [j [j1 []]]].
+apply in_split in H0 as [j2 [j3 ?]]; subst.
+apply remove_cycle in H as [w' [? []]].
+apply IH in H0 as [w'' [? []]]; exists w''; repeat split.
+eapply incl_tran; [apply H0|apply H]. apply H2. congruence.
+Qed.
+
+Local Open Scope positive.
 
 (* Letters for invertible words and fast operations. *)
 Inductive letter :=
