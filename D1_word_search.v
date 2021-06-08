@@ -24,10 +24,10 @@ Definition table := list (positive × nat × orbit).
 Definition state := positive × nat × word × table.
 
 (* Determine if the table is filled out. *)
-Fixpoint finished (T : table) :=
+Fixpoint complete (T : table) :=
   match T with
   | [] => true
-  | (_, O, _) :: T' => finished T'
+  | (_, O, _) :: T' => complete T'
   | _ => false
   end.
 
@@ -120,11 +120,11 @@ Definition step s_reset (S : state) : state × bool :=
     if (1 <? s) && length_le_nat w' l
     then
       let T' := round l T w' in
-      (s - 1, l, w', T', finished T')
+      (s - 1, l, w', T', complete T')
     else
       let T' := recycle l T in
       let T'' := snd (fill_orbits l T') in
-      (s_reset, l + Nat.max 1 (l / 4), w, T'', finished T'')%nat
+      (s_reset, l + Nat.max 1 (l / 4), w, T'', complete T'')%nat
   end.
 
 (* Find a word to describe the permutation w ∘ π. *)

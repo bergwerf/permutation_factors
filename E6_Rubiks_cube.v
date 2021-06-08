@@ -92,8 +92,7 @@ Definition ord := fold_left Pos.mul (map (λ kn, Pos.of_nat (snd kn)) orbits) 1.
 Eval lazy in ord.
 
 (* Find a strong generating set. *)
-Definition nontrivial_orbits := filter (λ kn, (1 <? snd kn)%nat) orbits.
-Definition table := Minkwitz.initialize nontrivial_orbits.
+Definition table := Minkwitz.initialize orbits.
 Definition sgs := Minkwitz.fill table gen 30000 3000 20.
 
 (***
@@ -108,10 +107,11 @@ is 201. This is not a very good upper bound; Rubik's cube can in general be
 solved using at most 20 face turns (http://www.cube20.org/), but this result
 required a specialized proof which took decades to discover.
 *)
-(* Eval vm_compute in Minkwitz.finished sgs. *)
 Eval vm_compute in
+  let complete := Minkwitz.complete sgs in
   let word_length fw := List.length (snd fw) in
   let word_lengths := map (λ row, map word_length (values (snd row))) sgs in
-  sum_list (map max_list word_lengths).
+  let upper_bound := sum_list (map max_list word_lengths) in
+  (complete, upper_bound).
 
 End Rubiks_cube.

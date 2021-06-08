@@ -32,7 +32,7 @@ Definition table := Minkwitz.initialize (Minkwitz.save_orbits chain).
 Definition sgs := Minkwitz.fill table gen 200 25 2.
 
 (* Show that all orbits are filled. *)
-Eval cbv in Minkwitz.finished sgs.
+Eval cbv in Minkwitz.complete sgs.
 
 (* Print it as a table. *)
 Eval cbv in print_table "│" [" "; "─"] (
