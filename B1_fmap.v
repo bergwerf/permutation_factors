@@ -253,6 +253,8 @@ Fixpoint identity_sieve (n : nat) (r : positive) :=
 Theorems
 *)
 
+Notation "f == g" := (∀i, f⋅i = g⋅i) (at level 50).
+
 Local Ltac fmap_induction f :=
   induction f as [|j_opt fO IHfO fI IHfI]; simpl; intros.
 

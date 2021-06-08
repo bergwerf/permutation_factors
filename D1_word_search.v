@@ -75,7 +75,7 @@ Fixpoint recycle (T : table) : table :=
     let loop T' p :=
       match p with ((f, w), (f', w')) =>
         if f || f'
-        then round T' (w ++ w')
+        then round T' (reduce [] (w ++ w'))
         else T'
       end in
     fold_left loop orbit_prod new_table
@@ -98,7 +98,7 @@ Fixpoint fill_orbits (T : table) : fmap (list (positive × word)) × table :=
               match lookup Ok' j with
               | Some _ => cOk'
               | None =>
-                let w'' := w' ++ w in
+                let w'' := reduce [] (w' ++ w) in
                 if length_le_nat w'' max_length
                 then (pred c', insert Ok' j (true, w''))
                 else cOk'

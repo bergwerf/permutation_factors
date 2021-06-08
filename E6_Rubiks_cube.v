@@ -1,6 +1,6 @@
 (* Rubik's cube. *)
 
-From CGT Require Import A1_setup B1_fmap B2_perm B3_word B5_print.
+From CGT Require Import A1_setup A2_lists B1_fmap B2_perm B3_word B5_print.
 From CGT Require Import C3_subgroup_chain D1_word_search.
 
 Require Import String.
@@ -43,19 +43,41 @@ Definition gen : list perm := map Cycles.pack [
   rotation 46 47 48 51 54 53 52 49   25 26 27   34 35 36   43 44 45   16 17 18
 ].
 
-Definition range := values (union_range gen).
-Definition chain := SGChain.build gen range.
+(***
+:: Solving order ::
+
+We might solve the cube in the same order as is often done by hand: first solve
+the top, then the middle, and finally the bottom. It turns out that the last two
+blocks cannot be permuted (I don't know if this is always the case), so we find
+a chain of 18 subgroups. I call this order A.
+
+There are some alternative orders: (B) first fix all corners and then all edges,
+(C) a bitwise ordering produced by `values (union_range gen)`. It turns out that
+A is better than B and C, but C is slightly better than B. Perhaps fixing all
+corners first really restrains movement for solving the edges. It should also be
+noted that the upper bound is _very_ sensitive to the word search parameters.
+*)
+
+Definition order := [
+  (* top side in circular order *)
+  01; 02; 03; 06; 09; 08; 07; 04;
+  (* middle edges in circular order *)
+  13; 22; 31; 40;
+  (* bottom side in circular order *)
+  46; 47; 48; 51; 54; 53; 52; 49
+].
+
+Definition chain := SGChain.build gen order.
 
 (* Computing this subgroup chain takes around half a minute. *)
 (* Eval vm_compute in Minkwitz.save_orbits chain. *)
+
 Definition orbits := [
-  (01, 24%nat); (02, 24%nat); (04, 22%nat); (08, 20%nat); 
-  (16, 21%nat); (48, 18%nat); (24, 18%nat); (40, 16%nat); 
-  (12, 15%nat); (20, 01%nat); (36, 12%nat); (52, 01%nat); 
-  (28, 09%nat); (44, 14%nat); (06, 12%nat); (10, 01%nat); 
-  (18, 06%nat); (34, 01%nat); (26, 10%nat); (42, 08%nat); 
-  (22, 06%nat); (38, 01%nat); (54, 01%nat); (30, 01%nat); 
-  (46, 01%nat); (03, 01%nat); (09, 01%nat); (17, 02%nat)
+  (01, 24%nat); (02, 24%nat); (03, 21%nat); (06, 22%nat); 
+  (09, 18%nat); (08, 20%nat); (07, 15%nat); (04, 18%nat); 
+  (13, 16%nat); (22, 14%nat); (31, 12%nat); (40, 10%nat); 
+  (46, 12%nat); (47, 08%nat); (48, 09%nat); (51, 06%nat); 
+  (54, 06%nat); (53, 2%nat)
 ].
 
 (***
@@ -72,20 +94,7 @@ Eval lazy in ord.
 (* Find a strong generating set. *)
 Definition nontrivial_orbits := filter (λ kn, (1 <? snd kn)%nat) orbits.
 Definition table := Minkwitz.initialize nontrivial_orbits.
-Definition sgs := Minkwitz.fill table gen 10000 1000 10.
-
-(* Eval vm_compute in Minkwitz.finished sgs. *)
-(* Eval vm_compute in print_csv
-  (("" :: map print_positive range) ::
-  map (λ row, match row with (k, _, orbit) =>
-    print_positive k ::
-    map (λ i,
-      match lookup orbit i with
-      | Some (_, w) => print_word gen_names w
-      | None => ""
-      end)
-    range
-  end) sgs). *)
+Definition sgs := Minkwitz.fill table gen 30000 3000 20.
 
 (***
 :: Upper-bound on the length of solutions for Rubik's cube ::
@@ -95,12 +104,11 @@ every such factorization uses one word from every row, we can compute the
 maximum solution length by adding the length of the longest word in each row.
 
 The upper bound computed from the selected subgroup chain and search parameters
-is 275. This is not a very good upper bound; Rubik's cube can in general be
+is 201. This is not a very good upper bound; Rubik's cube can in general be
 solved using at most 20 face turns (http://www.cube20.org/), but this result
 required a specialized proof which took decades to discover.
 *)
-Definition sum_list l := fold_left Nat.add l O.
-Definition max_list l := fold_left Nat.max l O.
+(* Eval vm_compute in Minkwitz.finished sgs. *)
 Eval vm_compute in
   let word_length fw := List.length (snd fw) in
   let word_lengths := map (λ row, map word_length (values (snd row))) sgs in

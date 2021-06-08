@@ -64,10 +64,9 @@ apply map_singleton_eq in H2, H4; clear H1 H3 H.
 2-5: rewrite map_length, seq_length; easy.
 (* Give the shortened word. *)
 exists (firstn (1 + n0) w ++ skipn (1 + (n0 + 1 + n1)) w); repeat split.
-+ apply incl_app. apply firstn_incl. apply skipn_incl.
++ auto with incl.
 + rewrite app_length, firstn_length, skipn_length; lia.
-+ rewrite fold_left_app, H2, <-H4.
-  rewrite <-fold_left_skipn; easy.
++ rewrite fold_left_app, H2, <-H4. rewrite <-fold_left_skipn; easy.
 Qed.
 
 (* Remove cycles from a connecting word. *)

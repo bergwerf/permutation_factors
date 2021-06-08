@@ -5,6 +5,9 @@ Require Import Wf_nat.
 
 Local Close Scope positive.
 
+Definition sum_list l := fold_left Nat.add l 0.
+Definition max_list l := fold_left Nat.max l 0.
+
 Section Lists.
 
 Variable X : Type.
@@ -73,3 +76,5 @@ Qed.
 End Well_founded_induction.
 
 End Lists.
+
+Global Hint Resolve incl_nil_l incl_cons incl_app firstn_incl skipn_incl : incl.
