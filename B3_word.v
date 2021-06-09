@@ -22,6 +22,19 @@ Notation apply' := (fold_left (λ i f, f⋅i)).
 (* Compose a list of permutations. *)
 Notation compose' w := (fold_left (λ π σ, σ ∘ π) w ident).
 
+Theorem apply_fold_compose π w i :
+  (fold_left (λ π σ, σ ∘ π) w π)⋅i = apply' w π⋅i.
+Proof.
+revert π i; simple_ind w.
+rewrite IHw, apply_compose; easy.
+Qed.
+
+Corollary apply_compose' w i :
+  (compose' w)⋅i = apply' w i.
+Proof.
+apply apply_fold_compose.
+Qed.
+
 (***
 :: Bounded length of orbit words ::
 
@@ -64,9 +77,9 @@ apply map_singleton_eq in H2, H4; clear H1 H3 H.
 2-5: rewrite map_length, seq_length; easy.
 (* Give the shortened word. *)
 exists (firstn (1 + n0) w ++ skipn (1 + (n0 + 1 + n1)) w); repeat split.
-+ auto with incl.
-+ rewrite app_length, firstn_length, skipn_length; lia.
-+ rewrite fold_left_app, H2, <-H4. rewrite <-fold_left_skipn; easy.
+auto with incl. simpl_list; lia.
+rewrite fold_left_app, H2, <-H4.
+rewrite <-fold_left_skipn; easy.
 Qed.
 
 (* Remove cycles from a connecting word. *)

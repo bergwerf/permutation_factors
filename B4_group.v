@@ -21,7 +21,7 @@ Definition Generates π := ∃w, w ⊆ gen /\ π == compose' w.
 (* The number of distinct permutations that are generated. *)
 Record Group_Order (ord : positive) := Group_Order_Witness {
   enum : positive -> perm;
-  enum_surjective : ∀π, Generates π -> ∃i, i <= ord /\ enum i == π;
+  enum_surjective : ∀π, Generates π -> ∃i, i <= ord /\ π == enum i;
   enum_injective : ∀i j, i <= ord -> j <= ord -> enum i == enum j -> i = j;
 }.
 
@@ -42,9 +42,6 @@ End Groups.
 Theorem unit_group_order :
   Group_Order [] 1.
 Proof.
-exists (λ _, ident); repeat split; intros.
-destruct H as [[]]; simpl in H.
-exists 1; split; easy.
-destruct H as [[]].
-apply in_eq. lia.
+exists (λ _, ident); repeat split; intros. destruct H as [w []].
+apply incl_l_nil in H; subst; simpl in H0. exists 1; easy. lia.
 Defined.

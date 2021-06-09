@@ -1,6 +1,6 @@
 (* A functional Schreier-vector to compute orbits. *)
 
-From CGT Require Import A1_setup B1_fmap B2_perm B4_group.
+From CGT Require Import A1_setup B1_fmap B2_perm B3_word B4_group.
 
 Module Schreier.
 Section Vector.
@@ -104,7 +104,7 @@ Lemma sound_loop V try n :
   Sound V -> Sound (loop V try n).
 Proof.
 revert V try; simple_ind n.
-destruct (extend_loop V _) as [V' try'] eqn:E.
+destruct (extend_loop _) as [V' try'] eqn:E.
 replace V' with (fst (extend_loop V try [])) by (rewrite E; easy).
 destruct try'. apply sound_extend_loop, H.
 apply IHn, sound_extend_loop, H.
@@ -123,12 +123,51 @@ End Soundness.
 
 Section Completeness.
 
-(* The vector contains the full orbit. *)
-Definition Complete (V : vector) := ∀π, Generates gen π -> lookup V π⋅k ≠ None.
+Local Open Scope nat.
 
-Theorem complete_build bound :
-  (size (union_range gen) <= bound)%nat -> Complete (build bound).
+(* The vector contains the full orbit. *)
+Definition Complete (V : vector) := ∀π, Generates gen π -> Contains V π⋅k.
+
+Lemma complete_extend_loop_keep V try acc i :
+  Contains V i -> Contains (fst (extend_loop V try acc)) i.
 Proof.
+Admitted.
+
+Lemma complete_loop_keep V try n i :
+  Contains V i -> Contains (loop V try n) i.
+Proof.
+Admitted.
+
+Lemma complete_extend_loop_add V try acc V' try' σ i:
+  In σ gen -> In i try ->
+  extend_loop V try acc = (V', try') ->
+  ¬Contains V σ⋅i -> Contains V' σ⋅i /\ In σ⋅i try'.
+Proof.
+Admitted.
+
+Lemma complete_loop V try n i w :
+  w ⊆ gen -> length w <= n -> In i try ->
+  Contains V i -> Contains (loop V try n) (apply' w i).
+Proof.
+revert V try i w; induction n; simpl; intros.
+destruct w; easy. destruct (extend_loop _) as [V' try'] eqn:E.
+destruct w as [|σ w]; simpl.
+- (* The orbit point is already found. *)
+  assert(Contains V' i).
+  replace V' with (fst (extend_loop V try [])).
+  apply complete_extend_loop_keep, H2. rewrite E; easy.
+  destruct try'. apply H3. apply complete_loop_keep, H3.
+- (* We can apply an induction step. *)
+  (* Problem: what if σ⋅i is already contained in V? *)
+  (* Do we have to search w for a continuation point? *)
+Admitted.
+
+Theorem complete_build n :
+  size (union_range gen) <= n -> Complete (build n).
+Proof.
+intros H π [w []]; unfold build.
+destruct (short_connecting_word w k) as [w' [? []]].
+rewrite H1, apply_compose', <-H4. apply complete_loop.
 Admitted.
 
 End Completeness.

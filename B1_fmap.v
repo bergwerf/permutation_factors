@@ -115,6 +115,7 @@ Arguments values {_}.
 Arguments entries {_}.
 Arguments mapval {_}.
 
+Notation Contains f key := (lookup f key ≠ None).
 Notation ffun := (fmap positive).
 
 (***
@@ -128,6 +129,7 @@ Definition apply (f : ffun) i :=
   end.
 
 Notation "f ⋅ i" := (apply f i) (at level 5, format "f ⋅ i").
+Notation "f == g" := (∀i, f⋅i = g⋅i) (at level 60).
 
 (***
 Function composition
@@ -253,8 +255,6 @@ Fixpoint identity_sieve (n : nat) (r : positive) :=
 Theorems
 *)
 
-Notation "f == g" := (∀i, f⋅i = g⋅i) (at level 50).
-
 Local Ltac fmap_induction f :=
   induction f as [|j_opt fO IHfO fI IHfI]; simpl; intros.
 
@@ -339,4 +339,10 @@ Proof.
 unfold apply; destruct (lookup f i) as [j|] eqn:H.
 erewrite lookup_compose_Some; easy.
 erewrite lookup_compose_None; easy.
+Qed.
+
+Corollary compose_assoc f g h :
+  (f ∘ g) ∘ h == f ∘ (g ∘ h).
+Proof.
+intros i; rewrite ?apply_compose; easy.
 Qed.
