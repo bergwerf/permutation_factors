@@ -70,15 +70,17 @@ Fixpoint recycle (T : table) : table :=
   | [] => []
   | (k, c, Ok) :: T' =>
     let orbit_vals := values Ok in
-    let orbit_prod := list_prod orbit_vals orbit_vals in
+    let vals_prod := list_prod orbit_vals orbit_vals in
     let new_table := (k, c, clear_flags Ok) :: recycle T' in
     let loop T' p :=
+      (* For every two words w and w' in the k-orbit: *)
       match p with ((f, w), (f', w')) =>
+        (* If either word is new: *)
         if f || f'
         then round T' (reduce [] (w ++ w'))
         else T'
       end in
-    fold_left loop orbit_prod new_table
+    fold_left loop vals_prod new_table
   end.
 
 (* Complete higher orbits with words lower in the table. *)
@@ -89,22 +91,28 @@ Fixpoint fill_orbits (T : table) : fmap (list (positive × word)) × table :=
     let (sub, T'') := fill_orbits T' in
     let orbit_k := map (λ e, (fst e, snd (snd e))) (entries Ok xH) in
     let loop cOk iw :=
+      (* For every k-orbit entry (i, w): *)
       match iw with (i, w) =>
+        (* Does the subgroup chain contain an i-orbit? *)
         match lookup sub i with
         | None => cOk
-        | Some orbit_i =>
+        | Some i_orbit =>
           let loop' cOk' jw :=
+            (* For every i-orbit entry (j, w'): *)
             match cOk', jw with (c', Ok'), (j, w') =>
+              (* Note that w' ++ w is a word that maps k to j. *)
+              (* Does the k-orbit already contain a word for j? *)
               match lookup Ok' j with
               | Some _ => cOk'
               | None =>
+                (* Insert the new word if it is short enough. *)
                 let w'' := reduce [] (w' ++ w) in
                 if length_le_nat w'' max_length
                 then (pred c', insert Ok' j (true, w''))
                 else cOk'
               end
             end in
-          fold_left loop' orbit_i cOk
+          fold_left loop' i_orbit cOk
         end
       end in
     let (c', Ok') := fold_left loop orbit_k (c, Ok) in
@@ -127,15 +135,19 @@ Definition step s_reset (S : state) : state × bool :=
       (s_reset, l + Nat.max 1 (l / 4), w, T'', complete T'')%nat
   end.
 
-(* Find a word to describe the permutation w ∘ π. *)
-Fixpoint find_word (T : table) (w : word) (π : perm) :=
+(* Find a word to describe the permutation w ∘ π in T. *)
+Fixpoint find_word (T : table) (π : perm) (w : word) :=
   match T with
+  (* If the subgroup chain is complete, we must have w ∘ π = ident. *)
   | [] => Some []
+  (* Otherwise map w ∘ π to the subgroup of T' by prepending a word. *)
   | (k, _, orbit) :: T' =>
+    (* Compute j := (w ∘ π)⋅k. *)
     let j := apply_word gen w π⋅k in
+    (* Find a word that maps k to j in the k-orbit. *)
     match lookup orbit j with
     | Some (_, w_hd) =>
-      match  find_word T' (inv_word w_hd ++ w) π with
+      match find_word T' π (inv_word w_hd ++ w) with
       | Some w_tl => Some (w_hd ++ w_tl)
       | None => None
       end
@@ -205,7 +217,7 @@ Definition fill (T : table) (gen : list perm) bound s l : table :=
 
 (* Find a permutation word using a strong generating set, and reduce it. *)
 Definition factorize (T : table) (gen : list perm)  π : option word :=
-  match find_word (prepare_generators gen) T [] π with
+  match find_word (prepare_generators gen) T π [] with
   | Some w => Some (reduce [] w)
   | None => None
   end.
