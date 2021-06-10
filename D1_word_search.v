@@ -3,7 +3,7 @@
 From CGT Require Import A1_setup B1_fmap B2_perm B3_word.
 From CGT Require Import C1_Schreier_vector C3_subgroup_chain.
 
-Module Minkwitz.
+Module SGS.
 
 Section Algorithm.
 
@@ -224,4 +224,4 @@ Definition factorize (T : table) (gen : list perm)  π : option word :=
 
 End Algorithm.
 
-End Minkwitz.
+End SGS.

@@ -28,11 +28,11 @@ Definition gen : list perm := map Cycles.pack [
 (* Build a strong generating set. *)
 Definition range := [1; 2; 3; 4; 5; 6].
 Definition chain := SGChain.build gen range.
-Definition table := Minkwitz.initialize (Minkwitz.save_orbits chain).
-Definition sgs := Minkwitz.fill table gen 200 25 2.
+Definition table := SGS.initialize (SGS.save_orbits chain).
+Definition sgs := SGS.fill table gen 200 25 2.
 
 (* Show that all orbits are filled. *)
-Eval cbv in Minkwitz.complete sgs.
+Eval cbv in SGS.complete sgs.
 
 (* Print it as a table. *)
 Eval cbv in print_table "│" [" "; "─"] (
@@ -70,7 +70,7 @@ Solution: v3'h2'v3'h2v1'h1'v1h1'v2'.
 *)
 Eval cbv in
   let π := create_perm [5; 1; 6; 3; 4; 2] in
-  match Minkwitz.factorize sgs gen π with
+  match SGS.factorize sgs gen π with
   | Some w => print_word gen_names (inv_word w)
   | None => "?"
   end.

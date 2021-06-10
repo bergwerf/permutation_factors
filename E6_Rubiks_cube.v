@@ -70,7 +70,7 @@ Definition order := [
 Definition chain := SGChain.build gen order.
 
 (* Computing this subgroup chain takes around half a minute. *)
-(* Eval vm_compute in Minkwitz.save_orbits chain. *)
+(* Eval vm_compute in SGS.save_orbits chain. *)
 
 Definition orbits := [
   (01, 24%nat); (02, 24%nat); (03, 21%nat); (06, 22%nat); 
@@ -92,8 +92,8 @@ Definition ord := fold_left Pos.mul (map (λ kn, Pos.of_nat (snd kn)) orbits) 1.
 Eval lazy in ord.
 
 (* Find a strong generating set. *)
-Definition table := Minkwitz.initialize orbits.
-Definition sgs := Minkwitz.fill table gen 30000 3000 20.
+Definition table := SGS.initialize orbits.
+Definition sgs := SGS.fill table gen 30000 3000 20.
 
 (***
 :: Upper-bound on the length of solutions for Rubik's cube ::
@@ -108,7 +108,7 @@ solved using at most 20 face turns (http://www.cube20.org/), but this result
 required a specialized proof which took decades to discover.
 *)
 Eval vm_compute in
-  let complete := Minkwitz.complete sgs in
+  let complete := SGS.complete sgs in
   let word_length fw := List.length (snd fw) in
   let word_lengths := map (λ row, map word_length (values (snd row))) sgs in
   let upper_bound := sum_list (map max_list word_lengths) in
