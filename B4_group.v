@@ -33,7 +33,7 @@ Theorem compose_generator σ π :
   Generates π -> In σ gen -> Generates (σ ∘ π).
 Proof.
 intros [w []] ?; exists (w ++ [σ]); split.
-auto with incl. rewrite fold_left_app; simpl.
+auto with datatypes. rewrite fold_left_app; simpl.
 intros i; rewrite ?apply_compose, <-H0; easy.
 Qed.
 

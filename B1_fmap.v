@@ -115,7 +115,7 @@ Arguments values {_}.
 Arguments entries {_}.
 Arguments mapval {_}.
 
-Notation Contains f key := (lookup f key ≠ None).
+Notation Defined f key := (lookup f key ≠ None).
 Notation ffun := (fmap positive).
 
 (***
@@ -257,6 +257,12 @@ Theorems
 
 Local Ltac fmap_induction f :=
   induction f as [|j_opt fO IHfO fI IHfI]; simpl; intros.
+
+Theorem defined_dec {V} (f : fmap V) i :
+  {Defined f i} + {¬Defined f i}.
+Proof.
+destruct (lookup f i); [left|right]; easy.
+Qed.
 
 Lemma lookup_create_eq {V} i (v : V) : lookup (create i v) i = Some v.
 Proof. induction i; easy. Qed.
