@@ -165,8 +165,8 @@ Definition inv f :=
 Union of the range of a list of functions.
 *)
 
-Definition union_range fs :=
-  fold_left (λ f i, insert f i i) (flat_map values fs) Leaf.
+Definition put f i := insert f i i.
+Definition union_range fs := fold_left put (flat_map values fs) Leaf.
 
 (***
 :: Pruning ::
@@ -381,4 +381,33 @@ Corollary compose_assoc f g h :
   (f ∘ g) ∘ h == f ∘ (g ∘ h).
 Proof.
 intros i; rewrite ?apply_compose; easy.
+Qed.
+
+(* Range and union *)
+
+Theorem in_values_insert {V} f i (v : V) :
+  In v (values (insert f i v)).
+Proof.
+Admitted.
+
+Theorem in_values f i :
+  f⋅i ≠ i -> In f⋅i (values f).
+Proof.
+Admitted.
+
+Theorem in_values_before_put f i j :
+  In i (values f) -> In i (values (put f j)).
+Proof.
+Admitted.
+
+Lemma in_fold_left_put range i :
+  In i range -> In i (values (fold_left put range Leaf)).
+Proof.
+Admitted.
+
+Theorem in_union_range i f fs :
+  In i (values f) -> In f fs -> In i (values (union_range fs)).
+Proof.
+intros; apply in_fold_left_put.
+apply in_flat_map; exists f; easy.
 Qed.

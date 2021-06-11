@@ -52,16 +52,30 @@ them with length at most the total number of points in the graph. Furthermore,
 we can make sure that this word never visits the same point twice.
 *)
 
-Local Close Scope positive.
+Local Open Scope nat.
 
 (* The points visited by word w starting at point i. *)
 Definition visited_points w i :=
   map (λ n, apply' (firstn n w) i) (seq 1 (length w)).
 
-Theorem visited_points_range gen w i :
-  w ⊆ gen -> visited_points w i ⊆ values (union_range gen).
+Lemma apply'_range gen w i :
+  w ⊆ gen -> apply' w i = i \/ ∃σ, In σ gen /\ In (apply' w i) (values σ).
 Proof.
-Admitted.
+revert i; induction w; simpl; intros. left; easy.
+destruct (IHw a⋅i). eapply incl_cons_inv, H.
+destruct (Pos.eq_dec a⋅i i). left; congruence.
+right; exists a; split. auto with datatypes.
+rewrite H0; apply in_values; easy. right; easy.
+Qed.
+
+Theorem visited_points_range gen w i :
+  w ⊆ gen -> visited_points w i ⊆ values (put (union_range gen) i).
+Proof.
+intros H j Hj. apply in_map_iff in Hj as [n []]; subst. apply in_seq in H1.
+edestruct apply'_range with (w:=firstn n w). auto with datatypes.
+rewrite H0; apply in_values_insert. apply in_values_before_put.
+destruct H0. eapply in_union_range. apply H0. apply H, H0.
+Qed.
 
 Lemma remove_cycle w i j j0 j1 j2 :
   visited_points w i = j0 ++ j :: j1 ++ j :: j2 ->

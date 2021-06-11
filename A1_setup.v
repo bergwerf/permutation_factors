@@ -1,7 +1,7 @@
 (* General purpose notations. *)
 
-Require Import Utf8 Bool List PeanoNat PArith BinNums.
-Export Utf8 Bool List ListNotations PeanoNat PArith BinNums.
+Require Import Utf8 Bool List Nat PeanoNat PArith BinNums.
+Export Utf8 Bool List ListNotations Nat PeanoNat PArith BinNums.
 
 Open Scope positive.
 
