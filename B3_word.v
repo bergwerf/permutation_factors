@@ -58,6 +58,11 @@ Local Close Scope positive.
 Definition visited_points w i :=
   map (λ n, apply' (firstn n w) i) (seq 1 (length w)).
 
+Theorem visited_points_range gen w i :
+  w ⊆ gen -> visited_points w i ⊆ values (union_range gen).
+Proof.
+Admitted.
+
 Lemma remove_cycle w i j j0 j1 j2 :
   visited_points w i = j0 ++ j :: j1 ++ j :: j2 ->
   ∃w', w' ⊆ w /\ length w' < length w /\ apply' w' i = apply' w i.

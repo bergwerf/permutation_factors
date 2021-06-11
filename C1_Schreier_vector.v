@@ -157,7 +157,10 @@ Admitted.
 Lemma finished_intermediary V w i :
   Intermediary V [] -> Defined V i -> w ⊆ gen -> Defined V (apply' w i).
 Proof.
-Admitted.
+intros [_ H]; revert i; simple_ind w.
+apply incl_cons_inv in H1 as []. apply IHw.
+apply H in H0 as []; [easy|apply H0, H1]. easy.
+Qed.
 
 Lemma complete_loop V try i w :
   w ⊆ gen -> Intermediary V try -> Defined V i ->
@@ -187,9 +190,11 @@ eapply defined_loop. apply complete_loop. easy.
   destruct (k =? i)%positive eqn:E; [|easy].
   convert_bool; subst; left; apply in_eq.
 - rewrite lookup_insert_eq; easy.
-- etransitivity; [|apply H].
-  admit.
-Admitted.
+- etransitivity; [|apply H]. rewrite size_eq_length_values.
+  replace (length w') with (length (visited_points w' k)) at 1.
+  apply NoDup_incl_length. easy. apply visited_points_range, H5.
+  unfold visited_points; rewrite map_length, seq_length; easy.
+Qed.
 
 End Completeness.
 

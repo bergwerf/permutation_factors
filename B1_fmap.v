@@ -255,14 +255,10 @@ Fixpoint identity_sieve (n : nat) (r : positive) :=
 Theorems
 *)
 
-Local Ltac fmap_induction f :=
+Local Ltac fmap_ind f :=
   induction f as [|j_opt fO IHfO fI IHfI]; simpl; intros.
 
-Theorem defined_dec {V} (f : fmap V) i :
-  {Defined f i} + {¬Defined f i}.
-Proof.
-destruct (lookup f i); [left|right]; easy.
-Qed.
+(* Generic operations *)
 
 Lemma lookup_create_eq {V} i (v : V) : lookup (create i v) i = Some v.
 Proof. induction i; easy. Qed.
@@ -277,7 +273,7 @@ Qed.
 Theorem lookup_insert_eq {V} f i (v : V) :
   lookup (insert f i v) i = Some v.
 Proof.
-revert i; fmap_induction f.
+revert i; fmap_ind f.
 apply lookup_create_eq.
 destruct i; simpl; easy.
 Qed.
@@ -285,7 +281,7 @@ Qed.
 Theorem lookup_insert_neq {V} f i j (v : V) :
   i ≠ j -> lookup (insert f i v) j = lookup f j.
 Proof.
-revert i j; fmap_induction f.
+revert i j; fmap_ind f.
 apply lookup_create_neq, H.
 destruct i, j; simpl; try easy.
 apply IHfI; congruence.
@@ -299,6 +295,21 @@ destruct (i =? j) eqn:E; [apply Pos.eqb_eq in E|apply Pos.eqb_neq in E].
 subst; apply lookup_insert_eq. apply lookup_insert_neq, E.
 Qed.
 
+Theorem defined_dec {V} (f : fmap V) i :
+  {Defined f i} + {¬Defined f i}.
+Proof.
+destruct (lookup f i); [left|right]; easy.
+Qed.
+
+Theorem size_eq_length_values {V} (f : fmap V) :
+  size f = length (values f).
+Proof.
+fmap_ind f. easy. destruct j_opt; simpl;
+rewrite IHfO, IHfI, app_length; easy.
+Qed.
+
+(* Apply and compose *)
+
 Corollary apply_insert f i j :
   (insert f i j)⋅i = j.
 Proof.
@@ -309,7 +320,7 @@ Qed.
 Lemma lookup_mapval_apply_None g f i :
   lookup f i = None -> lookup (mapval (apply g) f) i = None.
 Proof.
-revert i; fmap_induction f. easy.
+revert i; fmap_ind f. easy.
 destruct i, j_opt as [j|]; simpl; try easy.
 all: try apply IHfO; try apply IHfI; easy.
 Qed.
@@ -317,7 +328,7 @@ Qed.
 Lemma lookup_compose_None gI g f i :
   lookup f i = None -> lookup (compose gI g f) i = lookup g i.
 Proof.
-revert g i; fmap_induction f. easy.
+revert g i; fmap_ind f. easy.
 destruct j_opt as [j|], g, i; simpl; try easy.
 1,2,5,6: apply lookup_mapval_apply_None, H.
 all: try rewrite IHfI; try rewrite IHfO; easy.
@@ -326,7 +337,7 @@ Qed.
 Lemma lookup_mapval_apply_Some g f i j :
   lookup f i = Some j -> lookup (mapval (apply g) f) i = Some g⋅j.
 Proof.
-revert g i; fmap_induction f. easy.
+revert g i; fmap_ind f. easy.
 destruct j_opt as [j'|], i; simpl; try congruence.
 all: try apply IHfO; try apply IHfI; easy.
 Qed.
@@ -334,7 +345,7 @@ Qed.
 Lemma lookup_compose_Some gI g f i j :
   lookup f i = Some j -> lookup (compose gI g f) i = Some gI⋅j.
 Proof.
-revert g i; fmap_induction f. easy.
+revert g i; fmap_ind f. easy.
 destruct j_opt as [j'|], g, i; simpl; try congruence.
 all: try apply lookup_mapval_apply_Some; try apply IHfO; try apply IHfI; easy.
 Qed.
