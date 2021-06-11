@@ -260,6 +260,19 @@ Local Ltac fmap_ind f :=
 
 (* Generic operations *)
 
+Theorem fmap_eq_dec {V} :
+  (∀v w : V, {v = w} + {v ≠ w}) ->
+  ∀f g : fmap V, {f = g} + {f ≠ g}.
+Proof.
+intros V_dec f; induction f; destruct g; [left|right|right|]; try easy.
+destruct (IHf1 g1); [subst|right; intros H; inv H].
+destruct (IHf2 g2); [subst|right; intros H; inv H].
+destruct val, val0; [|right|right|left]; try easy.
+destruct (V_dec v v0); [left; subst; easy|right; intros H; inv H].
+Qed.
+
+Definition ffun_eq_dec := fmap_eq_dec Pos.eq_dec.
+
 Lemma lookup_create_eq {V} i (v : V) : lookup (create i v) i = Some v.
 Proof. induction i; easy. Qed.
 
@@ -299,6 +312,12 @@ Theorem defined_dec {V} (f : fmap V) i :
   {Defined f i} + {¬Defined f i}.
 Proof.
 destruct (lookup f i); [left|right]; easy.
+Qed.
+
+Theorem defined_before_insert {V} f i j (v : V) :
+  Defined f i -> Defined (insert f j v) i.
+Proof.
+rewrite lookup_insert; destruct (_ =? _); easy.
 Qed.
 
 Theorem size_eq_length_values {V} (f : fmap V) :

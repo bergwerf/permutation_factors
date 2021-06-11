@@ -60,6 +60,12 @@ revert l; induction n; destruct l; simpl.
 apply incl_tl, IHn.
 Qed.
 
+Theorem in_app_comm (x : X) l l' :
+  In x (l ++ l') -> In x (l' ++ l).
+Proof.
+intros; apply in_app_iff; apply in_app_iff in H as []; auto.
+Qed.
+
 Section Well_founded_induction.
 
 Variable P : list X -> Prop.
