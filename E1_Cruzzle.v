@@ -31,6 +31,11 @@ Definition chain := SGChain.build gen range.
 Definition table := SGS.initialize (SGS.save_orbits chain).
 Definition sgs := SGS.fill table gen 200 25 2.
 
+(* Print the subgroup chain. *)
+(* Eval cbv in str_join (print_hline 12) (map
+  (λ gen, print_lines (map print_perm gen))
+  (map fst (map fst chain))). *)
+
 (* Show that all orbits are filled. *)
 Eval cbv in SGS.complete sgs.
 

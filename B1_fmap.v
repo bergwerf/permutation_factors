@@ -385,10 +385,20 @@ Qed.
 
 (* Range and union *)
 
+Theorem in_values_create {V} i (v : V) :
+  In v (values (create i v)).
+Proof.
+induction i; simpl; try rewrite app_nil_r; auto.
+Qed.
+
 Theorem in_values_insert {V} f i (v : V) :
   In v (values (insert f i v)).
 Proof.
-Admitted.
+revert f; induction i; destruct f; simpl; auto.
+1,3: try rewrite app_nil_r; apply in_values_create.
+all: destruct val; try rewrite app_comm_cons; apply in_app_iff; auto.
+left; apply in_cons, IHi.
+Qed.
 
 Theorem in_values f i :
   f⋅i ≠ i -> In f⋅i (values f).
