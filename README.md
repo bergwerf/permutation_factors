@@ -29,8 +29,8 @@ physical objects.
    squares. I am curious how its complexity compares to Cruzzle.
 
 3. **Inversion** This puzzle is part of te same collection as Twiddle, see [4].
-   This time you can manipulate a grid by inverting a square and all direct
-   neighbors. This puzzle could be extended to many different plane tilings.
+   You can manipulate a grid by inverting a square and all direct neighbors.
+   This puzzle can be solved much more efficiently using row reduction modulo 2.
 
 4. **Topspin** This puzzle is used as case study in [2]. It works by rotating
    a sequence of numbers and reversing a fixed segment of them. This puzzle
