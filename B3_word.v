@@ -65,7 +65,8 @@ revert i; induction w; simpl; intros. left; easy.
 destruct (IHw a⋅i). eapply incl_cons_inv, H.
 destruct (Pos.eq_dec a⋅i i). left; congruence.
 right; exists a; split. auto with datatypes.
-rewrite H0; apply in_values; easy. right; easy.
+rewrite H0; apply apply_neq_in_values; easy.
+right; easy.
 Qed.
 
 Theorem visited_points_range gen w i :

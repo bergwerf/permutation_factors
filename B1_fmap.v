@@ -258,7 +258,7 @@ Theorems
 Local Ltac fmap_ind f :=
   induction f as [|j_opt fO IHfO fI IHfI]; simpl; intros.
 
-(* Generic operations *)
+(* Equality is decidable. *)
 
 Theorem fmap_eq_dec {V} :
   (∀v w : V, {v = w} + {v ≠ w}) ->
@@ -272,6 +272,8 @@ destruct (V_dec v v0); [left; subst; easy|right; intros H; inv H].
 Qed.
 
 Definition ffun_eq_dec := fmap_eq_dec Pos.eq_dec.
+
+(* Theorems about lookup. *)
 
 Lemma lookup_create_eq {V} i (v : V) : lookup (create i v) i = Some v.
 Proof. induction i; easy. Qed.
@@ -320,6 +322,8 @@ Proof.
 rewrite lookup_insert; destruct (_ =? _); easy.
 Qed.
 
+(* Theorems about size. *)
+
 Theorem size_eq_length_values {V} (f : fmap V) :
   size f = length (values f).
 Proof.
@@ -327,7 +331,53 @@ fmap_ind f. easy. destruct j_opt; simpl;
 rewrite IHfO, IHfI, app_length; easy.
 Qed.
 
-(* Apply and compose *)
+(* Theorems about values. *)
+
+Theorem in_values_create {V} i (v : V) :
+  In v (values (create i v)).
+Proof.
+induction i; simpl; try rewrite app_nil_r; auto.
+Qed.
+
+Theorem in_values_insert {V} f i (v : V) :
+  In v (values (insert f i v)).
+Proof.
+revert f; induction i; destruct f; simpl; auto.
+1,3: try rewrite app_nil_r; apply in_values_create.
+all: destruct val; try rewrite app_comm_cons; apply in_app_iff; auto.
+left; apply in_cons, IHi.
+Qed.
+
+Theorem lookup_in_values {V} f i (v : V) :
+  lookup f i = Some v -> In v (values f).
+Proof.
+Admitted.
+
+Corollary apply_neq_in_values f i :
+  f⋅i ≠ i -> In f⋅i (values f).
+Proof.
+unfold apply; destruct (lookup f i) eqn:E; [|easy].
+intros; eapply lookup_in_values, E.
+Qed.
+
+Theorem in_values_before_put f i j :
+  In i (values f) -> In i (values (put f j)).
+Proof.
+Admitted.
+
+Lemma in_fold_left_put range i :
+  In i range -> In i (values (fold_left put range Leaf)).
+Proof.
+Admitted.
+
+Theorem in_union_range i f fs :
+  In i (values f) -> In f fs -> In i (values (union_range fs)).
+Proof.
+intros; apply in_fold_left_put.
+apply in_flat_map; exists f; easy.
+Qed.
+
+(* Theorems about apply and compose *)
 
 Corollary apply_insert f i j :
   (insert f i j)⋅i = j.
@@ -381,43 +431,4 @@ Corollary compose_assoc f g h :
   (f ∘ g) ∘ h == f ∘ (g ∘ h).
 Proof.
 intros i; rewrite ?apply_compose; easy.
-Qed.
-
-(* Range and union *)
-
-Theorem in_values_create {V} i (v : V) :
-  In v (values (create i v)).
-Proof.
-induction i; simpl; try rewrite app_nil_r; auto.
-Qed.
-
-Theorem in_values_insert {V} f i (v : V) :
-  In v (values (insert f i v)).
-Proof.
-revert f; induction i; destruct f; simpl; auto.
-1,3: try rewrite app_nil_r; apply in_values_create.
-all: destruct val; try rewrite app_comm_cons; apply in_app_iff; auto.
-left; apply in_cons, IHi.
-Qed.
-
-Theorem in_values f i :
-  f⋅i ≠ i -> In f⋅i (values f).
-Proof.
-Admitted.
-
-Theorem in_values_before_put f i j :
-  In i (values f) -> In i (values (put f j)).
-Proof.
-Admitted.
-
-Lemma in_fold_left_put range i :
-  In i range -> In i (values (fold_left put range Leaf)).
-Proof.
-Admitted.
-
-Theorem in_union_range i f fs :
-  In i (values f) -> In f fs -> In i (values (union_range fs)).
-Proof.
-intros; apply in_fold_left_put.
-apply in_flat_map; exists f; easy.
 Qed.
