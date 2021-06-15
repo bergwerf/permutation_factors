@@ -29,13 +29,38 @@ Record Group_Order (ord : positive) := Group_Order_Witness {
 Theorems
 *)
 
-Theorem compose_generator σ π :
-  Generates π -> In σ gen -> Generates (σ ∘ π).
+Theorem generates_ident :
+  Generates ident.
 Proof.
-intros [w []] ?; exists (w ++ [σ]); split.
-auto with datatypes. rewrite fold_left_app; simpl.
-intros i; rewrite ?apply_compose, <-H0; easy.
+exists []; easy.
 Qed.
+
+Theorem generates_generator σ :
+  In σ gen -> Generates σ.
+Proof.
+exists [σ]; split. auto with datatypes.
+intros i; simpl; rewrite apply_compose; easy.
+Qed.
+
+Theorem generates_subst π τ :
+  τ == π -> Generates π -> Generates τ.
+Proof.
+intros ? [w []]; exists w; split. easy.
+etransitivity. apply H. easy.
+Qed.
+
+Theorem generates_compose π τ :
+  Generates π -> Generates τ -> Generates (τ ∘ π).
+Proof.
+intros [w []] [w' []]; exists (w ++ w'); split.
+auto with datatypes. rewrite fold_right_app.
+intros i; rewrite compose''_compose', ?apply_compose, <-H0, <-H2; easy.
+Qed.
+
+Theorem generates_inv π :
+  Generates π -> Generates (inv π).
+Proof.
+Admitted.
 
 End Groups.
 

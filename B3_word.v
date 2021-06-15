@@ -20,19 +20,22 @@ store generators and their inverses in a lookup map.
 Notation apply' := (fold_left (λ i f, f⋅i)).
 
 (* Compose a list of permutations. *)
-Notation compose' w := (fold_left (λ π σ, σ ∘ π) w ident).
+Notation compose'' := (fold_right (λ σ π, π ∘ σ)).
+Notation compose' := (compose'' ident).
 
-Theorem apply_fold_compose π w i :
-  (fold_left (λ π σ, σ ∘ π) w π)⋅i = apply' w π⋅i.
-Proof.
-revert π i; simple_ind w.
-rewrite IHw, apply_compose; easy.
-Qed.
-
-Corollary apply_compose' w i :
+Theorem apply_compose' w i :
   (compose' w)⋅i = apply' w i.
 Proof.
-apply apply_fold_compose.
+revert i; simple_ind w.
+rewrite apply_compose, IHw; easy.
+Qed.
+
+Theorem compose''_compose' π w :
+  compose'' π w == π ∘ compose' w.
+Proof.
+simple_ind w; intros i.
+rewrite <-compose_assoc, ?apply_compose.
+rewrite IHw, apply_compose; easy.
 Qed.
 
 (***

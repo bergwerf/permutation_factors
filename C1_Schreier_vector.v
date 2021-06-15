@@ -62,7 +62,7 @@ Definition orbit (V : vector) : list positive := map fst (entries V xH).
 (* The subgroup generators according to Schreier's Lemma. *)
 Definition generators (V : vector) : list perm :=
   let ϕ := mapval inv V in map
-  (λ a_u, let au := fst a_u ∘ snd a_u in (lookup ϕ au⋅k ?? ident) ∘ au)
+  (λ σ_u, let σu := fst σ_u ∘ snd σ_u in (lookup ϕ σu⋅k ?? ident) ∘ σu)
   (list_prod gen (values V)).
 
 (***
@@ -118,7 +118,8 @@ apply incl_cons_inv in H0 as [].
 destruct (lookup _); apply IHgen'; try easy.
 intros j; rewrite lookup_insert.
 destruct (_ =? _) eqn:E; [convert_bool; subst; split|apply H1].
-apply compose_generator; easy. apply apply_compose.
+apply generates_compose. easy. apply generates_generator; easy.
+apply apply_compose.
 Qed.
 
 Lemma sound_extend_loop V try new :
@@ -281,13 +282,72 @@ End Completeness.
 Section Schreiers_lemma.
 
 Variable V : vector.
+
+Lemma lookup_mapval_inv π :
+  lookup (mapval inv V) π⋅k ?? ident = inv (lookup V π⋅k ?? ident).
+Proof.
+destruct (lookup V π⋅k) eqn:E.
+erewrite lookup_mapval_some; easy.
+rewrite lookup_mapval_none; easy.
+Qed.
+
+Theorem in_generators σ u :
+  In σ gen -> In u (values V) ->
+  let σu := σ ∘ u in let π := inv (lookup V σu⋅k ?? ident) ∘ σu in
+  In π (generators V).
+Proof.
+intros; apply in_map_iff; exists (σ, u); simpl; split.
+rewrite lookup_mapval_inv; easy. apply in_prod; easy.
+Qed.
+
+Theorem in_generators_inv π :
+  In π (generators V) -> ∃σ u, In σ gen /\ In u (values V) /\
+  let σu := σ ∘ u in π == inv (lookup V σu⋅k ?? ident) ∘ σu.
+Proof.
+intros H; apply in_map_iff in H as [[σ u] []]; exists σ, u.
+apply in_prod_iff in H0; repeat split; try easy; simpl in *.
+rewrite <-H, lookup_mapval_inv; easy.
+Qed.
+
 Hypothesis sound : Sound V.
+
+Theorem generators_inclusion π :
+  Generates (generators V) π -> Generates gen π.
+Proof.
+intros [w []]; eapply generates_subst; [apply H0|clear H0].
+induction w; simpl. apply generates_ident.
+apply incl_cons_inv in H as [].
+apply generates_compose; [|apply IHw, H0].
+apply in_generators_inv in H as [σ [u [? []]]]; simpl in *.
+eapply generates_subst. apply H2. apply generates_compose.
+apply generates_compose. admit.
+apply generates_generator; easy.
+apply generates_inv. assert(Hk := sound (σ ∘ u)⋅k).
+destruct (lookup _); [easy|apply generates_ident].
+Admitted.
+
 Hypothesis complete : Complete V.
 
-Theorem generators_spec π :
-  Generates gen π /\ π⋅k = k <-> Generates (generators V) π.
+Theorem generators_stable π :
+  Generates (generators V) π -> π⋅k = k.
+Proof.
+intros [w []]; rewrite H0; clear H0.
+simple_ind w; rewrite apply_compose.
+Admitted.
+
+Theorem generators_complete π :
+  Generates gen π -> π⋅k = k -> Generates (generators V) π.
 Proof.
 Admitted.
+
+Corollary generators_spec π :
+  Generates (generators V) π <-> Generates gen π /\ π⋅k = k.
+Proof.
+repeat split; intros.
+apply generators_inclusion, H.
+apply generators_stable, H.
+apply generators_complete; easy.
+Qed.
 
 End Schreiers_lemma.
 

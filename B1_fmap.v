@@ -1,6 +1,7 @@
 (* Storing finite maps as unbalanced binary trees. *)
 
 From CGT Require Import A1_setup.
+Require Import RelationClasses.
 
 (***
 Operations on positive numbers
@@ -129,7 +130,8 @@ Definition apply (f : ffun) i :=
   end.
 
 Notation "f ⋅ i" := (apply f i) (at level 5, format "f ⋅ i").
-Notation "f == g" := (∀i, f⋅i = g⋅i) (at level 60).
+Definition Equivalent f g := ∀i, f⋅i = g⋅i.
+Notation "f == g" := (Equivalent f g) (at level 60).
 
 (***
 Function composition
@@ -322,6 +324,22 @@ Proof.
 rewrite lookup_insert; destruct (_ =? _); easy.
 Qed.
 
+Theorem lookup_mapval_none {V} t (f : fmap V) i :
+  lookup f i = None -> lookup (mapval t f) i = None.
+Proof.
+revert i; fmap_ind f. easy.
+destruct i, j_opt as [j|]; simpl; try easy.
+all: try apply IHfO; try apply IHfI; easy.
+Qed.
+
+Theorem lookup_mapval_some {V} t f i (v : V) :
+  lookup f i = Some v -> lookup (mapval t f) i = Some (t v).
+Proof.
+revert i; fmap_ind f. easy.
+destruct j_opt as [j'|], i; simpl; try congruence.
+all: try apply IHfO; try apply IHfI; easy.
+Qed.
+
 (* Theorems about size. *)
 
 Theorem size_eq_length_values {V} (f : fmap V) :
@@ -395,49 +413,40 @@ unfold apply; rewrite lookup_insert.
 rewrite Pos.eqb_refl; reflexivity.
 Qed.
 
-Lemma lookup_mapval_apply_None g f i :
-  lookup f i = None -> lookup (mapval (apply g) f) i = None.
-Proof.
-revert i; fmap_ind f. easy.
-destruct i, j_opt as [j|]; simpl; try easy.
-all: try apply IHfO; try apply IHfI; easy.
-Qed.
-
-Lemma lookup_compose_None gI g f i :
+Lemma lookup_compose_none gI g f i :
   lookup f i = None -> lookup (compose gI g f) i = lookup g i.
 Proof.
 revert g i; fmap_ind f. easy.
 destruct j_opt as [j|], g, i; simpl; try easy.
-1,2,5,6: apply lookup_mapval_apply_None, H.
+1,2,5,6: apply lookup_mapval_none, H.
 all: try rewrite IHfI; try rewrite IHfO; easy.
 Qed.
 
-Lemma lookup_mapval_apply_Some g f i j :
-  lookup f i = Some j -> lookup (mapval (apply g) f) i = Some g⋅j.
-Proof.
-revert g i; fmap_ind f. easy.
-destruct j_opt as [j'|], i; simpl; try congruence.
-all: try apply IHfO; try apply IHfI; easy.
-Qed.
-
-Lemma lookup_compose_Some gI g f i j :
+Lemma lookup_compose_some gI g f i j :
   lookup f i = Some j -> lookup (compose gI g f) i = Some gI⋅j.
 Proof.
 revert g i; fmap_ind f. easy.
 destruct j_opt as [j'|], g, i; simpl; try congruence.
-all: try apply lookup_mapval_apply_Some; try apply IHfO; try apply IHfI; easy.
+all: try apply lookup_mapval_some; try apply IHfO; try apply IHfI; easy.
 Qed.
 
 Theorem apply_compose g f i :
   (g ∘ f)⋅i = g⋅(f⋅i).
 Proof.
 unfold apply; destruct (lookup f i) as [j|] eqn:H.
-erewrite lookup_compose_Some; easy.
-erewrite lookup_compose_None; easy.
+erewrite lookup_compose_some; easy.
+erewrite lookup_compose_none; easy.
 Qed.
 
 Corollary compose_assoc f g h :
   (f ∘ g) ∘ h == f ∘ (g ∘ h).
 Proof.
 intros i; rewrite ?apply_compose; easy.
+Qed.
+
+Instance fmap_equivalence :
+  Equivalence Equivalent.
+Proof.
+split; try easy. intros f g h Hf Hg i.
+etransitivity; [apply Hf|apply Hg].
 Qed.
