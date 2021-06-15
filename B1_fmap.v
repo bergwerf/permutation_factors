@@ -165,8 +165,8 @@ Definition inv f :=
 Union of the range of a list of functions.
 *)
 
-Definition put f i := insert f i i.
-Definition union_range fs := fold_left put (flat_map values fs) Leaf.
+Definition put i f := insert f i i.
+Definition union_range fs := fold_right put Leaf (flat_map values fs).
 
 (***
 :: Pruning ::
@@ -351,29 +351,38 @@ Qed.
 Theorem lookup_in_values {V} f i (v : V) :
   lookup f i = Some v -> In v (values f).
 Proof.
-Admitted.
+revert i; fmap_ind f; [easy|intros]. destruct i, j_opt.
+all: try rewrite app_comm_cons; apply in_app_iff.
+1,2: right; eapply IHfI, H.
+1,2: left; try apply in_cons; eapply IHfO, H.
+left; inv H; apply in_eq. easy.
+Qed.
 
-Corollary apply_neq_in_values f i :
+Theorem apply_in_values f i :
   f⋅i ≠ i -> In f⋅i (values f).
 Proof.
 unfold apply; destruct (lookup f i) eqn:E; [|easy].
 intros; eapply lookup_in_values, E.
 Qed.
 
-Theorem in_values_before_put f i j :
-  In i (values f) -> In i (values (put f j)).
+Theorem lookup_after_put f i j :
+  lookup f i = Some i -> lookup (put j f) i = Some i.
 Proof.
-Admitted.
+unfold put; rewrite lookup_insert.
+destruct (_ =? _) eqn:E; convert_bool; subst; easy.
+Qed.
 
-Lemma in_fold_left_put range i :
-  In i range -> In i (values (fold_left put range Leaf)).
+Lemma lookup_fold_right_put range i f :
+  In i range -> lookup (fold_right put f range) i = Some i.
 Proof.
-Admitted.
+revert f; simple_ind range. destruct H; subst.
+apply lookup_insert_eq. apply lookup_after_put, IHrange, H.
+Qed.
 
-Theorem in_union_range i f fs :
-  In i (values f) -> In f fs -> In i (values (union_range fs)).
+Theorem lookup_union_range i f fs :
+  In i (values f) -> In f fs -> lookup (union_range fs) i = Some i.
 Proof.
-intros; apply in_fold_left_put.
+intros; apply lookup_fold_right_put.
 apply in_flat_map; exists f; easy.
 Qed.
 

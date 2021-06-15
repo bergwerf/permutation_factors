@@ -257,7 +257,7 @@ apply H3; easy.
 Qed.
 
 Theorem complete_build n :
-  size (put (union_range gen) k) <= n -> Complete (build n).
+  size (put k (union_range gen)) <= n -> Complete (build n).
 Proof.
 intros H π [w []]; unfold build.
 destruct (short_connecting_word w k) as [w' [? []]].

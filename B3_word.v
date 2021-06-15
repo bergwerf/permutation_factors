@@ -65,17 +65,18 @@ revert i; induction w; simpl; intros. left; easy.
 destruct (IHw a⋅i). eapply incl_cons_inv, H.
 destruct (Pos.eq_dec a⋅i i). left; congruence.
 right; exists a; split. auto with datatypes.
-rewrite H0; apply apply_neq_in_values; easy.
+rewrite H0; apply apply_in_values; easy.
 right; easy.
 Qed.
 
-Theorem visited_points_range gen w i :
-  w ⊆ gen -> visited_points w i ⊆ values (put (union_range gen) i).
+Theorem visited_points_range gen w k :
+  w ⊆ gen -> visited_points w k ⊆ values (put k (union_range gen)).
 Proof.
-intros H j Hj. apply in_map_iff in Hj as [n []]; subst. apply in_seq in H1.
+intros H i Hi. apply in_map_iff in Hi as [n []]; subst. apply in_seq in H1.
 edestruct apply'_range with (w:=firstn n w). auto with datatypes.
-rewrite H0; apply in_values_insert. apply in_values_before_put.
-destruct H0. eapply in_union_range. apply H0. apply H, H0.
+rewrite H0; apply in_values_insert. eapply lookup_in_values.
+destruct H0; eapply lookup_after_put, lookup_union_range.
+apply a. apply H, a.
 Qed.
 
 Lemma remove_cycle w i j j0 j1 j2 :
