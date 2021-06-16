@@ -21,6 +21,28 @@ permutation group. Therefore it has to follow the usual group axioms:
 Definition perm := ffun.
 Definition ident : perm := Leaf.
 
+Definition Perm π := Forall (λ i, Defined π i) (values π).
+
+Theorem perm_compose π τ :
+  Perm π -> Perm τ -> Perm (π ∘ τ).
+Proof.
+Admitted.
+
+Theorem perm_inv π :
+  Perm π -> Perm (inv π).
+Proof.
+Admitted.
+
+Theorem perm_inv_ident π :
+  Perm π -> inv π ∘ π == ident.
+Proof.
+Admitted.
+
+Theorem perm_order π :
+  Perm π -> ∃n, iter n (λ τ, π ∘ τ) π == ident.
+Proof.
+Admitted.
+
 (***
 Build a permutation from a list.
 *)

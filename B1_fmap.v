@@ -137,20 +137,20 @@ Notation "f == g" := (Equivalent f g) (at level 60).
 Function composition
 *)
 
-(* Apply g after f. The initial input for g must be copied as gI. *)
-Fixpoint compose (gI g f : ffun) {struct f} :=
+(* Apply g after f. The initial input for g must be copied as g0. *)
+Fixpoint compose (g0 g f : ffun) {struct f} :=
   let map_apply g f := mapval (apply g) f in
   match f with
   | Leaf => g
   | Node (Some i) fO fI =>
     match g with
-    | Leaf => Node (Some gI⋅i) (map_apply gI fO) (map_apply gI fI)
-    | Node jO g0 g1 => Node (Some gI⋅i) (compose gI g0 fO) (compose gI g1 fI)
+    | Leaf => Node (Some g0⋅i) (map_apply g0 fO) (map_apply g0 fI)
+    | Node jO gO gI => Node (Some g0⋅i) (compose g0 gO fO) (compose g0 gI fI)
     end
   | Node None fO fI =>
     match g with
-    | Leaf => Node None (map_apply gI fO) (map_apply gI fI)
-    | Node jO g0 g1 => Node jO (compose gI g0 fO) (compose gI g1 fI)
+    | Leaf => Node None (map_apply g0 fO) (map_apply g0 fI)
+    | Node jO gO gI => Node jO (compose g0 gO fO) (compose g0 gI fI)
     end
   end.
 
@@ -376,6 +376,16 @@ all: try rewrite app_comm_cons; apply in_app_iff.
 left; inv H; apply in_eq. easy.
 Qed.
 
+Theorem in_values_lookup {V} f (v : V) :
+  In v (values f) -> ∃i, lookup f i = Some v.
+Proof.
+fmap_ind f; [easy|destruct j_opt].
+inv H. exists 1; easy. rename H0 into H.
+all: apply in_app_or in H; destruct H.
+all: try apply IHfO in H as [i ?]; try apply IHfI in H as [i ?].
+1,3: exists i~0; easy. all: exists i~1; easy.
+Qed.
+
 Theorem apply_in_values f i :
   f⋅i ≠ i -> In f⋅i (values f).
 Proof.
@@ -404,7 +414,7 @@ intros; apply lookup_fold_right_put.
 apply in_flat_map; exists f; easy.
 Qed.
 
-(* Theorems about apply and compose *)
+(* Theorems about apply and compose. *)
 
 Corollary apply_insert f i j :
   (insert f i j)⋅i = j.
@@ -413,8 +423,8 @@ unfold apply; rewrite lookup_insert.
 rewrite Pos.eqb_refl; reflexivity.
 Qed.
 
-Lemma lookup_compose_none gI g f i :
-  lookup f i = None -> lookup (compose gI g f) i = lookup g i.
+Lemma lookup_compose_none g0 g f i :
+  lookup f i = None -> lookup (compose g0 g f) i = lookup g i.
 Proof.
 revert g i; fmap_ind f. easy.
 destruct j_opt as [j|], g, i; simpl; try easy.
@@ -422,8 +432,8 @@ destruct j_opt as [j|], g, i; simpl; try easy.
 all: try rewrite IHfI; try rewrite IHfO; easy.
 Qed.
 
-Lemma lookup_compose_some gI g f i j :
-  lookup f i = Some j -> lookup (compose gI g f) i = Some gI⋅j.
+Lemma lookup_compose_some g0 g f i j :
+  lookup f i = Some j -> lookup (compose g0 g f) i = Some g0⋅j.
 Proof.
 revert g i; fmap_ind f. easy.
 destruct j_opt as [j'|], g, i; simpl; try congruence.

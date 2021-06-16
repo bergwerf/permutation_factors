@@ -69,6 +69,8 @@ Definition generators (V : vector) : list perm :=
 Theorems
 *)
 
+Hypothesis perms : Forall Perm gen.
+
 Ltac replace_fst x y E := replace x with (fst (x, y)) by easy; rewrite <-E.
 Ltac replace_snd x y E := replace y with (snd (x, y)) by easy; rewrite <-E.
 
@@ -103,11 +105,8 @@ End Generic.
 Section Soundness.
 
 (* The orbit permutations are valid. *)
-Definition Sound (V : vector) := ∀i,
-  match lookup V i with
-  | Some π => Generates gen π /\ π⋅k = i
-  | None => True
-  end.
+Definition Sound (V : vector) :=
+  ∀i π, lookup V i = Some π -> Generates gen π /\ π⋅k = i.
 
 Lemma sound_extend π gen' V new :
   Generates gen π -> gen' ⊆ gen ->
@@ -116,10 +115,10 @@ Proof.
 revert V new; simple_ind gen'.
 apply incl_cons_inv in H0 as [].
 destruct (lookup _); apply IHgen'; try easy.
-intros j; rewrite lookup_insert.
-destruct (_ =? _) eqn:E; [convert_bool; subst; split|apply H1].
-apply generates_compose. easy. apply generates_generator; easy.
-apply apply_compose.
+intros j; rewrite lookup_insert; destruct (_ =? _) eqn:E.
+convert_bool; subst; split; inv H3. apply generates_compose.
+easy. apply generates_generator; easy. apply apply_compose.
+apply H1.
 Qed.
 
 Lemma sound_extend_loop V try new :
@@ -129,17 +128,16 @@ revert V new; simple_ind try.
 destruct (lookup V a) eqn:E.
 destruct (extend _) as [V' new'] eqn:E'.
 replace_fst V' new' E'. all: apply IHtry; try easy.
-assert(Ha := H a); rewrite E in Ha; destruct Ha; subst.
-apply sound_extend; easy.
+apply H in E as []; subst. apply sound_extend; easy.
 Qed.
 
 Theorem sound_build bound :
   Sound (build bound).
 Proof.
 unfold build; apply prop_loop. apply sound_extend_loop.
-intros i. rewrite lookup_insert; simpl.
-destruct (k =? i) eqn:E. convert_bool; subst.
-split. exists []; simpl; easy. easy. easy.
+intros i; rewrite lookup_insert; simpl.
+destruct (k =? i) eqn:E; [convert_bool; subst; intros|easy].
+inv H; split. apply generates_ident. easy.
 Qed.
 
 End Soundness.
@@ -311,20 +309,16 @@ Qed.
 
 Hypothesis sound : Sound V.
 
-Theorem generators_inclusion π :
-  Generates (generators V) π -> Generates gen π.
+Theorem generates_generators :
+  Forall (Generates gen) (generators V).
 Proof.
-intros [w []]; eapply generates_subst; [apply H0|clear H0].
-induction w; simpl. apply generates_ident.
-apply incl_cons_inv in H as [].
-apply generates_compose; [|apply IHw, H0].
+apply Forall_forall; intros.
 apply in_generators_inv in H as [σ [u [? []]]]; simpl in *.
-eapply generates_subst. apply H2. apply generates_compose.
-apply generates_compose. admit.
-apply generates_generator; easy.
-apply generates_inv. assert(Hk := sound (σ ∘ u)⋅k).
-destruct (lookup _); [easy|apply generates_ident].
-Admitted.
+eapply generates_subst. apply H1. repeat apply generates_compose.
+apply in_values_lookup in H0 as [i ?]; apply sound in H0; easy.
+apply generates_generator; easy. apply generates_inv. easy.
+destruct (lookup _) eqn:E. eapply sound, E. apply generates_ident.
+Qed.
 
 Hypothesis complete : Complete V.
 
@@ -332,7 +326,9 @@ Theorem generators_stable π :
   Generates (generators V) π -> π⋅k = k.
 Proof.
 intros [w []]; rewrite H0; clear H0.
-simple_ind w; rewrite apply_compose.
+simple_ind w; rewrite apply_compose. apply incl_cons_inv in H as [].
+apply in_generators_inv in H as [σ [u [? []]]]; simpl in *.
+rewrite H2.
 Admitted.
 
 Theorem generators_complete π :
@@ -344,9 +340,8 @@ Corollary generators_spec π :
   Generates (generators V) π <-> Generates gen π /\ π⋅k = k.
 Proof.
 repeat split; intros.
-apply generators_inclusion, H.
-apply generators_stable, H.
-apply generators_complete; easy.
+eapply generates_inclusion. apply generates_generators. apply H.
+apply generators_stable, H. apply generators_complete; easy.
 Qed.
 
 End Schreiers_lemma.

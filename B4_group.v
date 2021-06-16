@@ -29,6 +29,13 @@ Record Group_Order (ord : positive) := Group_Order_Witness {
 Theorems
 *)
 
+Hypothesis perms : Forall Perm gen.
+
+Theorem generates_perm π :
+  Generates π -> Perm π.
+Proof.
+Admitted.
+
 Theorem generates_ident :
   Generates ident.
 Proof.
@@ -60,9 +67,21 @@ Qed.
 Theorem generates_inv π :
   Generates π -> Generates (inv π).
 Proof.
+intros; destruct (perm_order π) as [n Hn].
+apply generates_perm, H. destruct H as [w H].
+exists (concat (repeat w n)).
 Admitted.
 
 End Groups.
+
+Theorem generates_inclusion gen gen' π :
+  Forall (Generates gen) gen' -> Generates gen' π -> Generates gen π.
+Proof.
+intros H [w []]. eapply generates_subst; [apply H1|clear H1].
+induction w; simpl. apply generates_ident.
+apply incl_cons_inv in H0 as []. apply generates_compose.
+eapply Forall_forall; [apply H|apply H0]. apply IHw, H1.
+Qed.
 
 Theorem unit_group_order :
   Group_Order [] 1.
