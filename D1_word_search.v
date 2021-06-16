@@ -90,29 +90,29 @@ Fixpoint fill_orbits (T : table) : fmap (list (positive × word)) × table :=
   | (k, c, Ok) :: T' =>
     let (sub, T'') := fill_orbits T' in
     let orbit_k := map (λ e, (fst e, snd (snd e))) (entries Ok xH) in
-    let loop cOk iw :=
+    let loop c_Ok i_w :=
       (* For every k-orbit entry (i, w): *)
-      match iw with (i, w) =>
+      match i_w with (i, w) =>
         (* Does the subgroup chain contain an i-orbit? *)
         match lookup sub i with
-        | None => cOk
+        | None => c_Ok
         | Some i_orbit =>
-          let loop' cOk' jw :=
+          let loop' c_Ok' j_w :=
             (* For every i-orbit entry (j, w'): *)
-            match cOk', jw with (c', Ok'), (j, w') =>
+            match c_Ok', j_w with (c', Ok'), (j, w') =>
               (* Note that w' ++ w is a word that maps k to j. *)
               (* Does the k-orbit already contain a word for j? *)
               match lookup Ok' j with
-              | Some _ => cOk'
+              | Some _ => c_Ok'
               | None =>
                 (* Insert the new word if it is short enough. *)
                 let w'' := reduce [] (w' ++ w) in
                 if length_le_nat w'' max_length
                 then (pred c', insert Ok' j (true, w''))
-                else cOk'
+                else c_Ok'
               end
             end in
-          fold_left loop' i_orbit cOk
+          fold_left loop' i_orbit c_Ok
         end
       end in
     let (c', Ok') := fold_left loop orbit_k (c, Ok) in

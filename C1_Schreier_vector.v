@@ -331,9 +331,53 @@ apply in_generators_inv in H as [σ [u [? []]]]; simpl in *.
 rewrite H2.
 Admitted.
 
+Definition translate :=
+  fold_left (λ (u_w' : perm × list perm) σ,
+    let (u, w') := u_w' in
+    let σu := σ ∘ u in
+    let u' := lookup V σu⋅k ?? ident in
+    (u', w' ++ [(inv u' ∘ σu)])).
+
+Theorem translate_fst_spec u u' w w' :
+  In u (values V) -> w ⊆ gen ->
+  fst (translate w (u, w')) = u' ->
+  u'⋅k = apply' w u⋅k /\ In u' (values V).
+Proof.
+revert u w'; induction w; simpl; intros. subst; easy.
+apply incl_cons_inv in H0. apply IHw in H1 as []. split; [|easy].
+rewrite H1. admit. admit. easy.
+Admitted.
+
+Lemma translate_shift_word_snd u w w' :
+  snd (translate w (u, w')) = w' ++ snd (translate w (u, [])).
+Proof.
+revert u w'; induction w; simpl; intros. rewrite app_nil_r; easy.
+rewrite IHw with (w' := [_]), IHw, app_assoc; easy.
+Qed.
+
+Lemma translate_shift_word u u' w w' w'' :
+  translate w (u, w') = (u', w' ++ w'') ->
+  translate w (u, []) = (u', w'').
+Proof.
+Admitted.
+
+Theorem translate_snd_spec u u' w w' :
+  translate w (u, []) = (u', w') ->
+  u' ∘ compose' w' ∘ inv u == compose' w.
+Proof.
+revert u u' w'; induction w; simpl; intros.
+inv H; simpl. admit.
+remember (lookup V (a ∘ u)⋅k ?? ident) as u''.
+assert(w' = snd (u', w')) by easy; rewrite <-H in H0.
+rewrite translate_shift_word_snd in H0; subst w'; simpl.
+apply translate_shift_word, IHw in H.
+Admitted.
+
 Theorem generators_complete π :
   Generates gen π -> π⋅k = k -> Generates (generators V) π.
 Proof.
+intros [w []] ?; destruct (translate w (ident, [])) as [u' w'] eqn:E.
+exists w'; split. admit. apply translate_snd_spec in E; simpl in E.
 Admitted.
 
 Corollary generators_spec π :
