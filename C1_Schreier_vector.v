@@ -86,7 +86,7 @@ Lemma prop_loop V try n :
   P V -> P (loop V try n).
 Proof.
 revert V try; simple_ind n.
-destruct (extend_loop _) as [V' new] eqn:E.
+destruct extend_loop as [V' new] eqn:E.
 replace_fst V' new E; destruct new; [|apply IHn].
 all: apply prop_extend_loop, H.
 Qed.
@@ -96,7 +96,7 @@ Lemma prop_loop_le V try m n :
 Proof.
 revert V try n; induction m; simpl; intros.
 apply prop_loop, H. destruct n; [easy|simpl].
-destruct (extend_loop _) as [V' new] eqn:E.
+destruct extend_loop as [V' new] eqn:E.
 destruct new; [easy|]. apply IHm. easy. apply le_S_n, H0.
 Qed.
 
@@ -114,7 +114,7 @@ Lemma sound_extend π gen' V new :
 Proof.
 revert V new; simple_ind gen'.
 apply incl_cons_inv in H0 as [].
-destruct (lookup _); apply IHgen'; try easy.
+destruct lookup; apply IHgen'; try easy.
 intros j; rewrite lookup_insert; destruct (_ =? _) eqn:E.
 convert_bool; subst; split; inv H3. apply generates_compose.
 easy. apply generates_generator; easy. apply apply_compose.
@@ -126,7 +126,7 @@ Lemma sound_extend_loop V try new :
 Proof.
 revert V new; simple_ind try.
 destruct (lookup V a) eqn:E.
-destruct (extend _) as [V' new'] eqn:E'.
+destruct extend as [V' new'] eqn:E'.
 replace_fst V' new' E'. all: apply IHtry; try easy.
 apply H in E as []; subst. apply sound_extend; easy.
 Qed.
@@ -167,7 +167,7 @@ Lemma defined_extend_loop V try new i :
 Proof.
 revert V new; simple_ind try.
 destruct (lookup V a) eqn:E.
-destruct (extend _) as [V' new'] eqn:E'.
+destruct extend as [V' new'] eqn:E'.
 replace_fst V' new' E'. all: apply IHtry; try easy.
 apply defined_extend; easy.
 Qed.
@@ -186,7 +186,7 @@ Lemma not_new_extend_loop V try new i :
 Proof.
 revert V new; simple_ind try.
 destruct (lookup V a) eqn:E.
-destruct (extend _) as [V' new'] eqn:E'.
+destruct extend as [V' new'] eqn:E'.
 all: apply IHtry; try easy.
 replace_fst V' new' E'; apply defined_extend; easy.
 replace_snd V' new' E'; apply not_new_extend; easy.
@@ -203,7 +203,7 @@ revert V new; induction gen'; simpl; intros.
   right; intros; apply H1; easy.
   left; easy. right; easy.
 - apply incl_cons_inv in H0.
-  destruct (lookup _) eqn:E; eapply IHgen' in H; try easy; intros.
+  destruct lookup eqn:E; eapply IHgen' in H; try easy; intros.
   + destruct (ffun_eq_dec a σ); subst. rewrite E; easy.
     apply H1. easy. intros []; easy.
   + destruct (ffun_eq_dec a σ); subst. rewrite lookup_insert_eq; easy.
@@ -227,7 +227,7 @@ Proof.
 revert V new; induction try; simpl; intros. inv H.
 assert(Defined V a) by (destruct H0; inv H0).
 destruct (lookup V a) eqn:E; [|easy].
-destruct (extend _) as [V'' new'] eqn:E'.
+destruct extend as [V'' new'] eqn:E'.
 eapply IHtry. apply H. eapply intermediate_extend.
 apply E'. all: easy.
 Qed.
@@ -245,7 +245,7 @@ Lemma complete_loop V try i w :
   Defined (loop V try (length w)) (apply' w i).
 Proof.
 revert V try i; induction w as [|σ w]; [easy|intros; simpl loop].
-destruct (extend_loop _) as [V' new] eqn:E. assert(Intermediate V' new).
+destruct extend_loop as [V' new] eqn:E. assert(Intermediate V' new).
 eapply intermediate_extend_loop. apply E. rewrite app_nil_r; easy.
 eapply defined_extend_loop in H1 as H3; rewrite E in H3; simpl in H3.
 eapply not_new_extend_loop in H1 as H4; [rewrite E in H4; simpl in H4|easy].
@@ -275,14 +275,21 @@ apply complete_loop. easy.
   unfold visited_points; rewrite map_length, seq_length; easy.
 Qed.
 
+Theorem lookup_ident n :
+  lookup (build n) k = Some ident.
+Proof.
+Admitted.
+
 End Completeness.
 
 Section Schreiers_lemma.
 
 Variable V : vector.
 
+Notation ϕ π := (lookup V π⋅k ?? ident).
+
 Lemma lookup_mapval_inv π :
-  lookup (mapval inv V) π⋅k ?? ident = inv (lookup V π⋅k ?? ident).
+  lookup (mapval inv V) π⋅k ?? ident = inv (ϕ π).
 Proof.
 destruct (lookup V π⋅k) eqn:E.
 erewrite lookup_mapval_some; easy.
@@ -291,45 +298,83 @@ Qed.
 
 Theorem in_generators σ u :
   In σ gen -> In u (values V) ->
-  let σu := σ ∘ u in let π := inv (lookup V σu⋅k ?? ident) ∘ σu in
-  In π (generators V).
+  let σu := σ ∘ u in let π := inv (ϕ σu) ∘ σu in In π (generators V).
 Proof.
 intros; apply in_map_iff; exists (σ, u); simpl; split.
 rewrite lookup_mapval_inv; easy. apply in_prod; easy.
 Qed.
 
-Theorem in_generators_inv π :
-  In π (generators V) -> ∃σ u, In σ gen /\ In u (values V) /\
-  let σu := σ ∘ u in π == inv (lookup V σu⋅k ?? ident) ∘ σu.
+Hypothesis sound : Sound V.
+
+Lemma generates_vector_words w :
+  In w (values V) -> Generates gen w.
 Proof.
-intros H; apply in_map_iff in H as [[σ u] []]; exists σ, u.
-apply in_prod_iff in H0; repeat split; try easy; simpl in *.
-rewrite <-H, lookup_mapval_inv; easy.
+intros; apply in_values_lookup in H as [i ?].
+apply sound in H; easy.
 Qed.
 
-Hypothesis sound : Sound V.
+Theorem in_generators_inv π :
+  In π (generators V) -> ∃τ, Generates gen τ /\ π == inv (ϕ τ) ∘ τ.
+Proof.
+intros H; apply in_map_iff in H as [[σ u] []]; exists (σ ∘ u); split.
+apply in_prod_iff in H0 as []; apply generates_compose.
+apply generates_vector_words, H1. apply generates_generator; easy.
+simpl in H; rewrite lookup_mapval_inv in H; rewrite H; easy.
+Qed.
+
+Lemma generates_vector_lookup π :
+  Generates gen (ϕ π).
+Proof.
+destruct lookup eqn:E.
+eapply sound, E. apply generates_ident.
+Qed.
+
+Hypothesis complete : Complete V.
+
+Lemma vector_lookup_spec π :
+  Generates gen π -> (ϕ π)⋅k = π⋅k.
+Proof.
+intros H; apply complete in H.
+destruct (lookup V π⋅k) eqn:E; [|easy].
+apply sound, E.
+Qed.
+
+Hypothesis k_ident : lookup V k = Some ident.
+
+Lemma ident_in_vector :
+  In ident (values V).
+Proof.
+eapply lookup_in_values, k_ident.
+Qed.
+
+Lemma vector_lookup_values π :
+  In (ϕ π) (values V).
+Proof.
+destruct (lookup V π⋅k) eqn:E.
+eapply lookup_in_values, E. apply ident_in_vector.
+Qed.
 
 Theorem generates_generators :
   Forall (Generates gen) (generators V).
 Proof.
 apply Forall_forall; intros.
-apply in_generators_inv in H as [σ [u [? []]]]; simpl in *.
-eapply generates_subst. apply H1. repeat apply generates_compose.
-apply in_values_lookup in H0 as [i ?]; apply sound in H0; easy.
-apply generates_generator; easy. apply generates_inv. easy.
-destruct (lookup _) eqn:E. eapply sound, E. apply generates_ident.
+apply in_generators_inv in H as [τ []].
+eapply generates_subst; [apply H0|].
+apply generates_compose; [easy|].
+apply generates_inv; [easy|apply generates_vector_lookup].
 Qed.
-
-Hypothesis complete : Complete V.
 
 Theorem generators_stable π :
   Generates (generators V) π -> π⋅k = k.
 Proof.
 intros [w []]; rewrite H0; clear H0.
-simple_ind w; rewrite apply_compose. apply incl_cons_inv in H as [].
-apply in_generators_inv in H as [σ [u [? []]]]; simpl in *.
-rewrite H2.
-Admitted.
+simple_ind w; rewrite apply_compose.
+apply incl_cons_inv in H as []; apply IHw in H0; rewrite <-H0 at 2.
+apply in_generators_inv in H as [τ []]; rewrite H1, apply_compose.
+rewrite perm_inv_apply with (i:=k). easy. eapply generates_perm.
+apply perms. apply generates_vector_lookup.
+apply vector_lookup_spec, H.
+Qed.
 
 Definition translate :=
   fold_left (λ (u_w' : perm × list perm) σ,
@@ -344,9 +389,13 @@ Theorem translate_fst_spec u u' w w' :
   u'⋅k = apply' w u⋅k /\ In u' (values V).
 Proof.
 revert u w'; induction w; simpl; intros. subst; easy.
-apply incl_cons_inv in H0. apply IHw in H1 as []. split; [|easy].
-rewrite H1. admit. admit. easy.
-Admitted.
+apply incl_cons_inv in H0. assert(Generates gen (a ∘ u)).
+apply generates_compose. apply generates_vector_words, H.
+apply generates_generator; easy.
+apply IHw in H1 as []. split; [|easy].
+rewrite H1, vector_lookup_spec, apply_compose; easy.
+apply vector_lookup_values. easy.
+Qed.
 
 Lemma translate_shift_word_snd u w w' :
   snd (translate w (u, w')) = w' ++ snd (translate w (u, [])).
@@ -367,18 +416,39 @@ Theorem translate_snd_spec u u' w w' :
 Proof.
 revert u u' w'; induction w; simpl; intros.
 inv H; simpl. admit.
-remember (lookup V (a ∘ u)⋅k ?? ident) as u''.
 assert(w' = snd (u', w')) by easy; rewrite <-H in H0.
 rewrite translate_shift_word_snd in H0; subst w'; simpl.
-apply translate_shift_word, IHw in H.
+apply translate_shift_word, IHw in H;
+remember (snd (translate _ _)) as π.
 Admitted.
+
+Theorem generators_incl_translate_snd u w :
+  In u (values V) -> w ⊆ gen ->
+  snd (translate w (u, [])) ⊆ generators V.
+Proof.
+revert u; simple_ind w; rewrite translate_shift_word_snd.
+apply incl_cons_inv in H0 as []; apply incl_app.
+intros i Hi; inv Hi; apply in_generators; easy.
+apply IHw. apply vector_lookup_values. easy.
+Qed.
 
 Theorem generators_complete π :
   Generates gen π -> π⋅k = k -> Generates (generators V) π.
 Proof.
 intros [w []] ?; destruct (translate w (ident, [])) as [u' w'] eqn:E.
-exists w'; split. admit. apply translate_snd_spec in E; simpl in E.
-Admitted.
+exists w'; split. replace_snd u' w' E; apply generators_incl_translate_snd.
+apply ident_in_vector. easy. apply translate_snd_spec in E as ?; simpl in H2.
+etransitivity; [apply H0|etransitivity; [symmetry; apply H2|]].
+(* The crux: we can determine that u' = ident. *)
+assert(fst (u', w') = u') by easy; rewrite <-E in H3.
+apply translate_fst_spec in H3 as []; [|apply ident_in_vector|easy].
+replace (ident⋅k) with k in H3 by easy.
+rewrite <-apply_compose', <-H0, H1 in H3.
+apply in_values_lookup in H4 as [i ?].
+apply sound in H4 as H5; destruct H5.
+rewrite H6 in H3; subst. rewrite k_ident in H4.
+inv H4; rewrite leaf_compose; easy.
+Qed.
 
 Corollary generators_spec π :
   Generates (generators V) π <-> Generates gen π /\ π⋅k = k.

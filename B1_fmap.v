@@ -460,3 +460,8 @@ Proof.
 split; try easy. intros f g h Hf Hg i.
 etransitivity; [apply Hf|apply Hg].
 Qed.
+
+Theorem leaf_compose f :
+  Leaf ∘ f = f.
+Proof.
+Admitted.

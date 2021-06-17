@@ -33,6 +33,11 @@ Theorem perm_inv π :
 Proof.
 Admitted.
 
+Theorem perm_inv_apply π i j :
+  Perm π -> π⋅i = j -> (inv π)⋅j = i.
+Proof.
+Admitted.
+
 Theorem perm_inv_ident π :
   Perm π -> inv π ∘ π == ident.
 Proof.
