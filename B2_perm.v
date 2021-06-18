@@ -23,6 +23,17 @@ Definition ident : perm := Leaf.
 
 Definition Perm π := Forall (λ i, Defined π i) (values π).
 
+Theorem perm_ident :
+  Perm ident.
+Proof.
+apply Forall_nil.
+Qed.
+
+Theorem perm_subst π τ :
+  π == τ -> Perm τ -> Perm π.
+Proof.
+Admitted.
+
 Theorem perm_compose π τ :
   Perm π -> Perm τ -> Perm (π ∘ τ).
 Proof.

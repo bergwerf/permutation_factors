@@ -31,11 +31,6 @@ Theorems
 
 Hypothesis perms : Forall Perm gen.
 
-Theorem generates_perm π :
-  Generates π -> Perm π.
-Proof.
-Admitted.
-
 Theorem generates_ident :
   Generates ident.
 Proof.
@@ -64,12 +59,25 @@ auto with datatypes. rewrite fold_right_app.
 intros i; rewrite compose''_compose', ?apply_compose, <-H0, <-H2; easy.
 Qed.
 
+Theorem generates_perm π :
+  Generates π -> Perm π.
+Proof.
+intros [w []]; eapply perm_subst.
+apply H0. clear H0; induction w; simpl.
+apply perm_ident. apply incl_cons_inv in H as [].
+apply perm_compose. auto. eapply Forall_forall with (P:=Perm).
+apply perms. apply H.
+Qed.
+
 Theorem generates_inv π :
   Generates π -> Generates (inv π).
 Proof.
 intros; destruct (perm_order π) as [n Hn].
-apply generates_perm, H. destruct H as [w H].
-exists (concat (repeat w n)).
+apply generates_perm, H. destruct H as [w []].
+exists (concat (repeat w n)); split.
+- intros τ Hτ; apply in_concat in Hτ as [w' []].
+  apply repeat_spec in H1; subst; auto.
+- (* We must show that the inverse of π is unique. *)
 Admitted.
 
 End Groups.

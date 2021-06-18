@@ -461,7 +461,16 @@ split; try easy. intros f g h Hf Hg i.
 etransitivity; [apply Hf|apply Hg].
 Qed.
 
+Lemma mapval_apply_leaf f :
+  mapval (apply Leaf) f = f.
+Proof.
+fmap_ind f; [easy|destruct j_opt].
+all: rewrite IHfO, IHfI; easy.
+Qed.
+
 Theorem leaf_compose f :
   Leaf ∘ f = f.
 Proof.
-Admitted.
+fmap_ind f; [easy|destruct j_opt].
+all: rewrite ?mapval_apply_leaf; easy.
+Qed.

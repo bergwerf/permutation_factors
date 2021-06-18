@@ -154,22 +154,36 @@ Definition Intermediate (V : vector) new :=
   Forall (λ i, Defined V i) new /\
   ∀i, Defined V i -> In i new \/ ∀σ, In σ gen -> Defined V σ⋅i.
 
-Lemma defined_extend i j π gen' V new :
-  Defined V i -> gen' ⊆ gen -> Defined (fst (extend j π gen' V new)) i.
+Lemma lookup_extend j π gen' V new i τ :
+  lookup V i = Some τ -> lookup (fst (extend j π gen' V new)) i = Some τ.
 Proof.
-revert V new; simple_ind gen'. apply incl_cons_inv in H0.
-destruct (lookup V a⋅j) eqn:E; apply IHgen'; try easy.
-apply defined_before_insert, H.
+revert V new; simple_ind gen'.
+destruct (lookup V a⋅j) eqn:E; erewrite <-IHgen'; try easy.
+rewrite lookup_insert; destruct (_ =? _)%positive eqn:E'; convert_bool.
+rewrite E', H in E; easy. easy.
+Qed.
+
+Lemma lookup_extend_loop V try new i τ :
+  lookup V i = Some τ -> lookup (fst (extend_loop V try new)) i = Some τ.
+Proof.
+revert V new; simple_ind try.
+destruct (lookup V a) eqn:E. destruct extend as [V' new'] eqn:E'.
+replace_fst V' new' E'. all: apply IHtry; try easy.
+apply lookup_extend; easy.
+Qed.
+
+Lemma defined_extend i j π gen' V new :
+  Defined V i -> Defined (fst (extend j π gen' V new)) i.
+Proof.
+destruct (lookup V i) eqn:E; [intros _|easy].
+erewrite lookup_extend. easy. apply E.
 Qed.
 
 Lemma defined_extend_loop V try new i :
   Defined V i -> Defined (fst (extend_loop V try new)) i.
 Proof.
-revert V new; simple_ind try.
-destruct (lookup V a) eqn:E.
-destruct extend as [V' new'] eqn:E'.
-replace_fst V' new' E'. all: apply IHtry; try easy.
-apply defined_extend; easy.
+destruct (lookup V i) eqn:E; [intros _|easy].
+erewrite lookup_extend_loop. easy. apply E.
 Qed.
 
 Lemma not_new_extend i j π gen' V new :
@@ -184,10 +198,8 @@ Qed.
 Lemma not_new_extend_loop V try new i :
   Defined V i -> ¬In i new -> ¬In i (snd (extend_loop V try new)).
 Proof.
-revert V new; simple_ind try.
-destruct (lookup V a) eqn:E.
-destruct extend as [V' new'] eqn:E'.
-all: apply IHtry; try easy.
+revert V new; simple_ind try. destruct (lookup V a) eqn:E.
+destruct extend as [V' new'] eqn:E'. all: apply IHtry; try easy.
 replace_fst V' new' E'; apply defined_extend; easy.
 replace_snd V' new' E'; apply not_new_extend; easy.
 Qed.
@@ -208,7 +220,8 @@ revert V new; induction gen'; simpl; intros.
     apply H1. easy. intros []; easy.
   + destruct (ffun_eq_dec a σ); subst. rewrite lookup_insert_eq; easy.
     apply defined_before_insert, H1. easy. intros []; easy.
-  + destruct H2. rewrite app_comm_cons in H2; apply Forall_app in H2. split.
+  + (* Here we show that the insertion produces a new intermediate vector. *)
+    destruct H2. rewrite app_comm_cons in H2; apply Forall_app in H2. split.
     * apply Forall_app with (l1:=i :: try); split.
       2: apply Forall_cons. 2: rewrite lookup_insert_eq; easy.
       all: eapply Forall_impl; [|apply H2].
@@ -278,7 +291,10 @@ Qed.
 Theorem lookup_ident n :
   lookup (build n) k = Some ident.
 Proof.
-Admitted.
+unfold build; apply prop_loop.
+intros; apply lookup_extend_loop; easy.
+apply lookup_insert_eq.
+Qed.
 
 End Completeness.
 
@@ -397,18 +413,28 @@ rewrite H1, vector_lookup_spec, apply_compose; easy.
 apply vector_lookup_values. easy.
 Qed.
 
-Lemma translate_shift_word_snd u w w' :
+Lemma translate_subst_word u w w' w'' :
+  fst (translate w (u, w')) = fst (translate w (u, w'')).
+Proof.
+revert u w' w''; simple_ind w; apply IHw.
+Qed.
+
+Lemma translate_shift_word u w w' :
   snd (translate w (u, w')) = w' ++ snd (translate w (u, [])).
 Proof.
 revert u w'; induction w; simpl; intros. rewrite app_nil_r; easy.
 rewrite IHw with (w' := [_]), IHw, app_assoc; easy.
 Qed.
 
-Lemma translate_shift_word u u' w w' w'' :
+Lemma translate_remove_word u u' w w' w'' :
   translate w (u, w') = (u', w' ++ w'') ->
   translate w (u, []) = (u', w'').
 Proof.
-Admitted.
+intros; assert(snd (translate w (u, w')) = w' ++ w'') by (rewrite H; easy).
+rewrite translate_shift_word in H0. apply app_inv_head in H0.
+rewrite surjective_pairing at 1; rewrite H0.
+erewrite translate_subst_word, H; easy.
+Qed.
 
 Theorem translate_snd_spec u u' w w' :
   translate w (u, []) = (u', w') ->
@@ -417,16 +443,15 @@ Proof.
 revert u u' w'; induction w; simpl; intros.
 inv H; simpl. admit.
 assert(w' = snd (u', w')) by easy; rewrite <-H in H0.
-rewrite translate_shift_word_snd in H0; subst w'; simpl.
-apply translate_shift_word, IHw in H;
-remember (snd (translate _ _)) as π.
+rewrite translate_shift_word in H0; subst w'; simpl.
+apply translate_remove_word, IHw in H; remember (snd (translate _ _)) as π.
 Admitted.
 
 Theorem generators_incl_translate_snd u w :
   In u (values V) -> w ⊆ gen ->
   snd (translate w (u, [])) ⊆ generators V.
 Proof.
-revert u; simple_ind w; rewrite translate_shift_word_snd.
+revert u; simple_ind w; rewrite translate_shift_word.
 apply incl_cons_inv in H0 as []; apply incl_app.
 intros i Hi; inv Hi; apply in_generators; easy.
 apply IHw. apply vector_lookup_values. easy.
