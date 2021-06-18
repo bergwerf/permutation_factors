@@ -10,17 +10,10 @@ represent a permutation. Ways to describe a valid permutation include:
 - A permutation is a bijective function from a finite set to itself.
 - A permutation is the result of composing a list of transpositions.
 - Mapping node values are unique and only map to other node values.
-
-Next we want to describe what it means for a subset of fmap to describe a
-permutation group. Therefore it has to follow the usual group axioms:
-1. Composition of any three elements in the set is associative.
-2. The set contains the identity permutation.
-3. The set contains the inverse of any permutation.
 *)
 
 Definition perm := ffun.
-Definition ident : perm := Leaf.
-
+Definition ident : ffun := Leaf.
 Definition Perm π := Forall (λ i, Defined π i) (values π).
 
 Theorem perm_ident :
@@ -71,14 +64,11 @@ Definition create_perm (l : list positive) :=
 
 Permutations are often written as compositions of cycles. For example the cycle
 `(1 3 2)` represents the function {⟨1, 3⟩, ⟨3, 2⟩, ⟨2, 1⟩}. We will also support
-input and output of such cycles as lists of numbers, however to simplify the
-implementation we require that the start of the cycle is repeated at the end.
-For example `(1 3 2) = [1; 3; 2; 1]`.
-
-In general we regard a cycle as a linear lookup list. Because it is more natural
-for left-to-right readers we compose cycles left-first. Note that when
-permutations are unpacked into cycles we have to glue mappings together, this
-is handled by the `push` function.
+input and output of such cycles as lists of numbers. To make the implementation
+simpler we require that the start of the cycle is repeated at the end. For
+example: `(1 3 2) = [1; 3; 2; 1]`. We use such a list as a linear lookup list.
+Because it is more natural for left-to-right readers we compose cycles left to
+right.
 *)
 Module Cycles.
 

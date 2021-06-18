@@ -44,15 +44,10 @@ Qed.
 The orbit of k consists of all points that are reachable from k using a
 generator. We can imagine all moving points (the objects that are permuted) as
 nodes in a graph which are connected by permutations. An edge between two nodes
-may be labelled with multiple permutations, and one permutation might occur at
+may be labelled with multiple permutations, and one permutation occurs at
 multiple edges. Every word forms a path in this graph, connecting different
-pairs of points. We claim that the orbit of k is fully determined when all words
+pairs of points. We show that the orbit of k is fully determined when all words
 with length at most the number of points in the graph have been accounted for.
-
-Using the pigeon-hole principle we can determine for any two points i and j; if
-i and j are connected by some word, then there exists a connecting word between
-them with length at most the total number of points in the graph. Furthermore,
-we can make sure that this word never visits the same point twice.
 *)
 
 Local Open Scope nat.

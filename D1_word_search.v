@@ -23,7 +23,19 @@ Definition orbit := fmap (bool × word).
 Definition table := list (positive × nat × orbit).
 Definition state := positive × nat × word × table.
 
-(* Determine if the table is filled out. *)
+(* Convert a subgroup chain to an orbit table. *)
+Definition save_orbits (C : SGChain.chain) :=
+  map (λ sg, match sg with (_, k, V) => (k, size V) end) C.
+
+(* Initialize a triple given the stabilizer point k and orbit size n. *)
+Definition initialize_triple (k : positive) (n : nat) :=
+  (k, pred n, @create (bool × word) k (false, [])).
+
+(* Create an empty SGS table from an orbit table. *)
+Definition initialize (orbits : list (positive × nat)) :=
+  map (λ kn, initialize_triple (fst kn) (snd kn)) orbits.
+
+(* Determine if all orbits in the table are filled. *)
 Fixpoint complete (T : table) :=
   match T with
   | [] => true
@@ -136,7 +148,7 @@ Definition step s_reset (S : state) : state × bool :=
   end.
 
 (* Find a word to describe the permutation w ∘ π in T. *)
-Fixpoint find_word (T : table) (π : perm) (w : word) :=
+Fixpoint find_word (T : table) (w : word) (π : perm) :=
   match T with
   (* If the subgroup chain is complete, we must have w ∘ π = ident. *)
   | [] => Some []
@@ -147,7 +159,7 @@ Fixpoint find_word (T : table) (π : perm) (w : word) :=
     (* Find a word that maps k to j in the k-orbit. *)
     match lookup orbit j with
     | Some (_, w_hd) =>
-      match find_word T' π (inv_word w_hd ++ w) with
+      match find_word T' (inv_word w_hd ++ w) π with
       | Some w_tl => Some (w_hd ++ w_tl)
       | None => None
       end
@@ -189,18 +201,6 @@ Fixpoint iter {X} n (f : X -> X × bool) (x : X) : X × bool :=
     end
   end.
 
-(* Initialize a triple given the stabilizer point k and orbit size n. *)
-Definition initialize_triple (k : positive) (n : nat) :=
-  (k, pred n, @create (bool × word) k (false, [])).
-
-(* Convert a subgroup chain to an orbit table. *)
-Definition save_orbits (C : SGChain.chain) :=
-  map (λ sg, match sg with (_, k, V) => (k, size V) end) C.
-
-(* Create an empty search table from an orbit table. *)
-Definition initialize (orbits : list (positive × nat)) :=
-  map (λ kn, initialize_triple (fst kn) (snd kn)) orbits.
-
 (***
 Fill an SGS table.
 - T: The table to fill.
@@ -217,7 +217,7 @@ Definition fill (T : table) (gen : list perm) bound s l : table :=
 
 (* Find a permutation word using a strong generating set, and reduce it. *)
 Definition factorize (T : table) (gen : list perm)  π : option word :=
-  match find_word (prepare_generators gen) T π [] with
+  match find_word (prepare_generators gen) T [] π with
   | Some w => Some (reduce [] w)
   | None => None
   end.

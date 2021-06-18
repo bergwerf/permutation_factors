@@ -7,8 +7,11 @@ Require Import Lia.
 :: Groups ::
 
 The Schreier-Sims algorithm describes groups, but we want to avoid proving more
-Group Theory than strictly necessary. Therefore I favor short and efficient
-definitions over more mathematically complete ones.
+Group Theory than strictly necessary. Instead of defining groups generically we
+restrict ourselves to groups defined as words over a list of generators. It
+follows from the properties of permutation composition that these words obey the
+usual group axioms: composition is associative, there is an identity element,
+and every permutation has an inverse.
 *)
 Section Groups.
 
