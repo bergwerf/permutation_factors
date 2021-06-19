@@ -16,12 +16,25 @@ because inverting words is essential. For fast application of these words we
 store generators and their inverses in a lookup map.
 *)
 
+(***
+Global definitions.
+*)
+
+(* Letters for invertible words and fast operations. *)
+Inductive letter :=
+  | Forward (x : positive)
+  | Inverse (x : positive).
+
+Notation word := (list letter).
+
 (* Apply a list of permutations to index i. *)
 Notation apply' := (fold_left (λ i f, f⋅i)).
 
 (* Compose a list of permutations. *)
 Notation compose'' := (fold_right (λ σ π, π ∘ σ)).
 Notation compose' := (compose'' ident).
+
+Section Simple_words.
 
 Theorem apply_compose' w i :
   (compose' w)⋅i = apply' w i.
@@ -39,7 +52,7 @@ rewrite IHw, apply_compose; easy.
 Qed.
 
 (***
-:: Bounded length of orbit words ::
+:: Bounded length of connecting paths ::
 
 The orbit of k consists of all points that are reachable from k using a
 generator. We can imagine all moving points (the objects that are permuted) as
@@ -53,8 +66,7 @@ with length at most the number of points in the graph have been accounted for.
 Local Open Scope nat.
 
 (* The points visited by word w starting at point i. *)
-Definition visited_points w i :=
-  map (λ n, apply' (firstn n w) i) (seq 1 (length w)).
+Definition path w i := map (λ n, apply' (firstn n w) i) (seq 1 (length w)).
 
 Lemma apply'_range gen w i :
   w ⊆ gen -> apply' w i = i \/ ∃σ, In σ gen /\ In (apply' w i) (values σ).
@@ -67,8 +79,8 @@ rewrite H0; apply apply_in_values; easy.
 right; easy.
 Qed.
 
-Theorem visited_points_range gen w k :
-  w ⊆ gen -> visited_points w k ⊆ values (put k (union_range gen)).
+Theorem path_range gen w k :
+  w ⊆ gen -> path w k ⊆ values (put k (union_range gen)).
 Proof.
 intros H i Hi. apply in_map_iff in Hi as [n []]; subst. apply in_seq in H1.
 edestruct apply'_range with (w:=firstn n w). auto with datatypes.
@@ -78,11 +90,13 @@ apply a. apply H, a.
 Qed.
 
 Lemma remove_cycle w i j j0 j1 j2 :
-  visited_points w i = j0 ++ j :: j1 ++ j :: j2 ->
+  path w i = j0 ++ j :: j1 ++ j :: j2 ->
   ∃w', w' ⊆ w /\ length w' < length w /\ apply' w' i = apply' w i.
 Proof.
-pose(n0 := length j0); pose(n1 := length j1); pose(n2 := length j2).
-unfold visited_points; intros.
+pose(n0 := length j0);
+pose(n1 := length j1);
+pose(n2 := length j2).
+unfold path; intros.
 assert(length w = n0 + 1 + n1 + 1 + n2). {
   assert(E := wd (@length _) _ _ H).
   rewrite map_length, seq_length in E; rewrite E.
@@ -103,10 +117,10 @@ Qed.
 
 (* Remove cycles from a connecting word. *)
 Theorem short_connecting_word w i :
-  ∃w', w' ⊆ w /\ NoDup (visited_points w' i) /\ apply' w' i = apply' w i.
+  ∃w', w' ⊆ w /\ NoDup (path w' i) /\ apply' w' i = apply' w i.
 Proof.
 revert w; apply lt_length_wf_ind; intros w IH.
-destruct (nodup_dec _ Pos.eq_dec (visited_points w i)).
+destruct (nodup_dec _ Pos.eq_dec (path w i)).
 exists w; easy. destruct e as [j0 [j [j1 []]]].
 apply in_split in H0 as [j2 [j3 ?]]; subst.
 apply remove_cycle in H as [w' [? []]].
@@ -114,14 +128,11 @@ apply IH in H0 as [w'' [? []]]; exists w''; repeat split.
 eapply incl_tran; [apply H0|apply H]. apply H2. congruence.
 Qed.
 
+End Simple_words.
+
+Section Fast_invertible_words.
+
 Local Open Scope positive.
-
-(* Letters for invertible words and fast operations. *)
-Inductive letter :=
-  | Forward (x : positive)
-  | Inverse (x : positive).
-
-Notation word := (list letter).
 
 (* Compare two letters. *)
 Definition eqb_letter (a b : letter) :=
@@ -219,3 +230,5 @@ Fixpoint length_lt_length {X} (l1 l2 : list X) :=
     | _ :: l1' => length_lt_length l1' l2'
     end
   end.
+
+End Fast_invertible_words.

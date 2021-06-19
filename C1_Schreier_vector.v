@@ -283,9 +283,9 @@ apply complete_loop. easy.
   convert_bool; subst; left; apply in_eq.
 - rewrite lookup_insert_eq; easy.
 - etransitivity; [|apply H]. rewrite size_eq_length_values.
-  replace (length w') with (length (visited_points w' k)) at 1.
-  apply NoDup_incl_length. easy. apply visited_points_range, H5.
-  unfold visited_points; rewrite map_length, seq_length; easy.
+  replace (length w') with (length (path w' k)) at 1.
+  apply NoDup_incl_length. easy. apply path_range, H5.
+  unfold path; rewrite map_length, seq_length; easy.
 Qed.
 
 Theorem lookup_ident n :

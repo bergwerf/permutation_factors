@@ -7,9 +7,9 @@ From CGT Require Import A1_setup B1_fmap.
 
 We use radix-2 trees (fmap) to store permutations. Of course not all finite maps
 represent a permutation. Ways to describe a valid permutation include:
-- A permutation is a bijective function from a finite set to itself.
-- A permutation is the result of composing a list of transpositions.
-- Mapping node values are unique and only map to other node values.
+- A permutation is a function from a set to itself.
+- A permutation is a composition of transpositions.
+- A permutation is a bijective function.
 *)
 
 Definition perm := ffun.
@@ -25,6 +25,13 @@ Qed.
 Theorem perm_subst π τ :
   π == τ -> Perm τ -> Perm π.
 Proof.
+intros; apply Forall_forall; intros j ?.
+apply in_values_lookup in H1 as [i ?].
+destruct (Pos.eq_dec j i); subst. rewrite H1; easy.
+assert(π⋅i = j). unfold apply; rewrite H1; easy.
+rewrite H in H2; subst; apply apply_in_values in n.
+eapply Forall_forall in n; [|apply H0]; simpl in n.
+(* I think we first have to show that a Perm is bijective. *)
 Admitted.
 
 Theorem perm_compose π τ :
