@@ -220,14 +220,14 @@ Fixpoint length_le_nat {X} (l : list X) n :=
     end
   end.
 
-(* Optimized version of `length l1 <? length l2`. *)
-Fixpoint length_lt_length {X} (l1 l2 : list X) :=
-  match l2 with
-  | [] => false
-  | _ :: l2' =>
-    match l1 with
-    | [] => true
-    | _ :: l1' => length_lt_length l1' l2'
+(* Optimized version of `length l1 <=? length l2`. *)
+Fixpoint length_le_length {X} (l1 l2 : list X) :=
+  match l1 with
+  | [] => true
+  | _ :: l1' =>
+    match l2 with
+    | [] => false
+    | _ :: l2' => length_le_length l1' l2'
     end
   end.
 

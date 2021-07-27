@@ -17,7 +17,9 @@ when all generators are found. The triples carry the following information:
 - The subgroup stabilizer point: k.
 - The size of the orbit of k minus the orbit permutations already found: c.
 - A map from an orbit value i to a flag f and a word w such that w is fully
-  reduced and w maps k to i. The flag is used for periodic optimization.
+  reduced and w maps k to i. The flag is used for periodic optimization. Note
+  that in his paper T. Minkwitz stores words that map i to k (the inverse of
+  what I do). There is no particular reason for my deviation from this.
 *)
 Definition orbit := fmap (bool × word).
 Definition table := list (positive × nat × orbit).
@@ -51,6 +53,7 @@ Section Fixed_max_length.
 Variable max_length : nat.
 
 (* Try to add the given permutation to the table. *)
+(* This algorithm does not try `inv_word w`, which can be a good candidate. *)
 Fixpoint round (T : table) (w : word) : table :=
   if length_le_nat w max_length
   then match T with
@@ -60,9 +63,11 @@ Fixpoint round (T : table) (w : word) : table :=
     match lookup Ok j with
     | None => (k, pred c, insert Ok j (true, w)) :: T'
     | Some (_, w') =>
-      if length_lt_length w w'
-      then (k, c, insert Ok j (true, w)) :: T'
-      else (k, c, Ok) :: round T' (reduce [] (inv_word w' ++ w))
+      let w'' := reduce [] (inv_word w' ++ w) in
+      let T'' := round T' w'' in
+      if length_le_length w w'
+      then (k, c, insert Ok j (true, w)) :: T''
+      else (k, c, Ok) :: T''
     end
   end else T.
 
@@ -134,7 +139,7 @@ Fixpoint fill_orbits (T : table) : fmap (list (positive × word)) × table :=
 End Fixed_max_length.
 
 (* Add the next word to the table. *)
-Definition step s_reset (S : state) : state × bool :=
+Definition cycle s_reset (S : state) : state × bool :=
   match S with (s, l, w, T) =>
     let w' := next_word gen_size w in
     if (1 <? s) && length_le_nat w' l
@@ -176,9 +181,9 @@ I believe that the search is certain to converge after checking all words of
 length at most n! (track the maximum word length along the subgroup chain). Of
 course in practice the search should converge _much_ faster. In Coq all
 functions must terminate, so to always finish the table we need to give a
-theoretical upper bound. Since every step checks the next word, I think this
+theoretical upper bound. Since every cycle checks the next word, I think this
 upper bound should be c^n!, where c is twice the size of the generating set. I
-decided to let the user supply an upper-bound on the number of steps.
+decided to let the user supply an upper-bound on the number of cycles.
 *)
 
 (* Apply f n times, or terminate when f returns (_, true). *)
@@ -205,14 +210,14 @@ Fixpoint iter {X} n (f : X -> X × bool) (x : X) : X × bool :=
 Fill an SGS table.
 - T: The table to fill.
 - gen: The generating set.
-- bound: Maximum number of steps.
-- s: Macro step size; recycle and orbit filling are done after every s steps.
+- bound: Maximum number of cycles.
+- s: Macro cycle size; recycle and orbit filling are done after every s cycles.
 - l: Initial maximum word length; rounds are terminated beyond this length.
 *)
 Definition fill (T : table) (gen : list perm) bound s l : table :=
   let G := prepare_generators gen in
   let n := Pos.of_nat (length gen) in
-  let S := iter bound (step G n s) (s, l, [], T) in
+  let S := iter bound (cycle G n s) (s, l, [], T) in
   snd (fst S).
 
 (* Find a permutation word using a strong generating set, and reduce it. *)

@@ -93,7 +93,7 @@ Eval lazy in ord.
 
 (* Find a strong generating set. *)
 Definition table := SGS.initialize orbits.
-Definition sgs := SGS.fill table gen 30000 3000 20.
+Definition sgs := SGS.fill table gen 30000 10000 20.
 
 (***
 :: Upper-bound on the length of solutions for Rubik's cube ::
@@ -103,7 +103,7 @@ every such factorization uses one word from every row, we can compute the
 maximum solution length by adding the length of the longest word in each row.
 
 The upper bound computed from the selected subgroup chain and search parameters
-is 201. This is not a very good upper bound; Rubik's cube can in general be
+is 182. This is not a very good upper bound; Rubik's cube can in general be
 solved using at most 20 face turns (http://www.cube20.org/), but this result
 required a specialized proof which took decades to discover.
 *)
