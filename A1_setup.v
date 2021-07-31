@@ -20,6 +20,9 @@ Notation "A × B" := (prod A B) (at level 100).
 (* List inclusion. *)
 Notation "l ⊆ m" := (incl l m) (at level 70).
 
+(* List conjunction. *)
+Notation landb l := (fold_left andb l true).
+
 (* Option unpacking. *)
 Notation "opt ?? d" :=
   (match opt with Some v => v | None => d end)

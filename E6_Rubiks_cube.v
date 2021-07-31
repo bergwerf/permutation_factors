@@ -77,7 +77,7 @@ Definition orbits := [
   (09, 18%nat); (08, 20%nat); (07, 15%nat); (04, 18%nat); 
   (13, 16%nat); (22, 14%nat); (31, 12%nat); (40, 10%nat); 
   (46, 12%nat); (47, 08%nat); (48, 09%nat); (51, 06%nat); 
-  (54, 06%nat); (53, 2%nat)
+  (54, 06%nat); (53, 02%nat)
 ].
 
 (***
@@ -93,7 +93,7 @@ Eval lazy in ord.
 
 (* Find a strong generating set. *)
 Definition table := SGS.initialize orbits.
-Definition sgs := SGS.fill table gen 30000 10000 20.
+Definition sgs := SGS.fill table gen 40000 10000 20.
 
 (***
 :: Upper-bound on the length of solutions for Rubik's cube ::
@@ -103,15 +103,16 @@ every such factorization uses one word from every row, we can compute the
 maximum solution length by adding the length of the longest word in each row.
 
 The upper bound computed from the selected subgroup chain and search parameters
-is 182. This is not a very good upper bound; Rubik's cube can in general be
+is 176. This is not a very good upper bound; Rubik's cube can in general be
 solved using at most 20 face turns (http://www.cube20.org/), but this result
 required a specialized proof which took decades to discover.
 *)
 Eval vm_compute in
   let complete := SGS.complete sgs in
+  let valid := SGS.valid sgs gen orbits in
   let word_length fw := List.length (snd fw) in
   let word_lengths := map (λ row, map word_length (values (snd row))) sgs in
   let upper_bound := sum_list (map max_list word_lengths) in
-  (complete, upper_bound).
+  (complete, valid, upper_bound).
 
 End Rubiks_cube.

@@ -17,9 +17,7 @@ when all generators are found. The triples carry the following information:
 - The subgroup stabilizer point: k.
 - The size of the orbit of k minus the orbit permutations already found: c.
 - A map from an orbit value i to a flag f and a word w such that w is fully
-  reduced and w maps k to i. The flag is used for periodic optimization. Note
-  that in his paper T. Minkwitz stores words that map i to k (the inverse of
-  what I do). There is no particular reason for my deviation from this.
+  reduced and w maps i to k. The flag indicates if w is a new word.
 *)
 Definition orbit := fmap (bool × word).
 Definition table := list (positive × nat × orbit).
@@ -52,8 +50,20 @@ Variable gen_size : positive.
 Section Fixed_max_length.
 Variable max_length : nat.
 
-(* Try to add the given permutation to the table. *)
-(* This algorithm does not try `inv_word w`, which can be a good candidate. *)
+(* Subroutine of a round; add a new word to the orbit and try its inverse. *)
+Definition round_finish (k : positive) (c : nat) (Ok : orbit) j w :=
+  let w_inv := inv_word w in
+  let Ok' := insert Ok j (true, w_inv) in
+  let j' := apply_word gen w_inv k in
+  match lookup Ok' j' with
+  | None => (k, pred c, insert Ok' j' (true, w))
+  | Some (_, w') =>
+    if length_le_length w w'
+    then (k, c, insert Ok' j' (true, w))
+    else (k, c, Ok')
+  end.
+
+(* Update the table using the suggested word. *)
 Fixpoint round (T : table) (w : word) : table :=
   if length_le_nat w max_length
   then match T with
@@ -61,12 +71,12 @@ Fixpoint round (T : table) (w : word) : table :=
   | (k, c, Ok) :: T' =>
     let j := apply_word gen w k in
     match lookup Ok j with
-    | None => (k, pred c, insert Ok j (true, w)) :: T'
+    | None => round_finish k (pred c) Ok j w :: T'
     | Some (_, w') =>
-      let w'' := reduce [] (inv_word w' ++ w) in
+      let w'' := reduce [] (w' ++ w) in
       let T'' := round T' w'' in
       if length_le_length w w'
-      then (k, c, insert Ok j (true, w)) :: T''
+      then round_finish k c Ok j w :: T''
       else (k, c, Ok) :: T''
     end
   end else T.
@@ -92,15 +102,13 @@ Fixpoint recycle (T : table) : table :=
     let loop T' p :=
       (* For every two words w and w' in the k-orbit: *)
       match p with ((f, w), (f', w')) =>
-        (* If either word is new: *)
-        if f || f'
-        then round T' (reduce [] (w ++ w'))
-        else T'
+        (* If either word is new; compute an extra round. *)
+        if f || f' then round T' (reduce [] (w ++ w')) else T'
       end in
     fold_left loop vals_prod new_table
   end.
 
-(* Complete higher orbits with words lower in the table. *)
+(* Complete higher orbits with words lower in the table (graph connectivity). *)
 Fixpoint fill_orbits (T : table) : fmap (list (positive × word)) × table :=
   match T with
   | [] => (Leaf, [])
@@ -117,13 +125,13 @@ Fixpoint fill_orbits (T : table) : fmap (list (positive × word)) × table :=
           let loop' c_Ok' j_w :=
             (* For every i-orbit entry (j, w'): *)
             match c_Ok', j_w with (c', Ok'), (j, w') =>
-              (* Note that w' ++ w is a word that maps k to j. *)
+              (* Note that w ++ w' is a word that maps j to k. *)
               (* Does the k-orbit already contain a word for j? *)
               match lookup Ok' j with
               | Some _ => c_Ok'
               | None =>
                 (* Insert the new word if it is short enough. *)
-                let w'' := reduce [] (w' ++ w) in
+                let w'' := reduce [] (w ++ w') in
                 if length_le_nat w'' max_length
                 then (pred c', insert Ok' j (true, w''))
                 else c_Ok'
@@ -139,17 +147,17 @@ Fixpoint fill_orbits (T : table) : fmap (list (positive × word)) × table :=
 End Fixed_max_length.
 
 (* Add the next word to the table. *)
-Definition cycle s_reset (S : state) : state × bool :=
+Definition cycle s_reset (S : state) : state :=
   match S with (s, l, w, T) =>
     let w' := next_word gen_size w in
     if (1 <? s) && length_le_nat w' l
     then
       let T' := round l T w' in
-      (s - 1, l, w', T', complete T')
+      (s - 1, l, w', T')
     else
       let T' := recycle l T in
       let T'' := snd (fill_orbits l T') in
-      (s_reset, l + Nat.max 1 (l / 4), w, T'', complete T'')%nat
+      (s_reset, l + Nat.max 1 (l / 4), w, T'')%nat
   end.
 
 (* Find a word to describe the permutation w ∘ π in T. *)
@@ -161,11 +169,12 @@ Fixpoint find_word (T : table) (w : word) (π : perm) :=
   | (k, _, orbit) :: T' =>
     (* Compute j := (w ∘ π)⋅k. *)
     let j := apply_word gen w π⋅k in
-    (* Find a word that maps k to j in the k-orbit. *)
+    (* Find a word that maps j to k. *)
     match lookup orbit j with
     | Some (_, w_hd) =>
-      match find_word T' (inv_word w_hd ++ w) π with
-      | Some w_tl => Some (w_hd ++ w_tl)
+      match find_word T' (w_hd ++ w) π with
+      (* w_tl = w_hd ∘ w ∘ π *)
+      | Some w_tl => Some (inv_word w_hd ++ w_tl)
       | None => None
       end
     | None => None
@@ -179,31 +188,15 @@ End Fixed_generators.
 
 I believe that the search is certain to converge after checking all words of
 length at most n! (track the maximum word length along the subgroup chain). Of
-course in practice the search should converge _much_ faster. In Coq all
-functions must terminate, so to always finish the table we need to give a
-theoretical upper bound. Since every cycle checks the next word, I think this
-upper bound should be c^n!, where c is twice the size of the generating set. I
-decided to let the user supply an upper-bound on the number of cycles.
+course in practice the search should converge _much_ faster.
 *)
 
-(* Apply f n times, or terminate when f returns (_, true). *)
-Fixpoint iter {X} n (f : X -> X × bool) (x : X) : X × bool :=
+(* Apply f n times. *)
+Fixpoint iter {X} n (f : X -> X) (x : X) : X :=
   match n with
   | 1 => f x
-  | m~0 =>
-    match iter m f x with
-    | (y, true) => (y, true)
-    | (y, false) => iter m f y
-    end
-  | m~1 =>
-    match f x with
-    | (y, true) => (y, true)
-    | (y, false) =>
-      match iter m f y with
-      | (z, true) => (z, true)
-      | (z, false) => iter m f z
-      end
-    end
+  | m~0 => iter m f (iter m f x)
+  | m~1 => iter m f (iter m f (f x))
   end.
 
 (***
@@ -218,7 +211,7 @@ Definition fill (T : table) (gen : list perm) bound s l : table :=
   let G := prepare_generators gen in
   let n := Pos.of_nat (length gen) in
   let S := iter bound (cycle G n s) (s, l, [], T) in
-  snd (fst S).
+  snd S.
 
 (* Find a permutation word using a strong generating set, and reduce it. *)
 Definition factorize (T : table) (gen : list perm)  π : option word :=
@@ -226,6 +219,27 @@ Definition factorize (T : table) (gen : list perm)  π : option word :=
   | Some w => Some (reduce [] w)
   | None => None
   end.
+
+(* Check the validity of all words in the table, and return the orbit sizes. *)
+Fixpoint check_words (T : table) (gen : generators) (ks : list positive) :=
+  match T with
+  | [] => []
+  | (k, _, Ok) :: T' =>
+    let orbit := entries Ok xH in
+    let valid := landb (map (λ e, match e with (i, (_, w)) =>
+      landb (map (λ j, apply_word gen w j =? j) ks)
+      && (k =? apply_word gen w i)
+    end) orbit) in
+    (k, length orbit, valid) ::
+    check_words T' gen (k :: ks)
+  end.
+
+(* Determine if the table is valid. *)
+Definition valid (T : table) (gen : list perm) orbits :=
+  let G := prepare_generators gen in
+  landb (map (λ p, match p with ((k, n), (l, m, b)) =>
+    (k =? l) && (n =? m)%nat && b end)
+  (combine orbits (check_words T G []))).
 
 End Algorithm.
 
