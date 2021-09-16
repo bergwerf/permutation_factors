@@ -1,0 +1,560 @@
+// Permutation factorization
+// =========================
+// Computer Algebra project by Herman Bergwerf (2021).
+//
+// This is a MAGMA implementation of an algorithm to compute, given a generating
+// set of a permutation group; a chain of nested subgroups and a strong
+// generating set (SGS) of words. The latter requires a subgroup chain to
+// determine when the table is finished. Using the SGS we can factorize
+// permutations in the group in terms of the input generators.
+//
+// The algorithms we use were invented by O. Schreier, C. Sims, and T. Minkwitz.
+// As part of this project I first implemented the whole algorithm as a purely
+// functional program in Coq, and formally verified various theoretical aspects.
+// The most important part in understanding the algorithm is Schreier's lemma,
+// which gives a generator of each subsequent subgroup.
+//
+// The implementation of this algorithm is based on [2][3][4]. While [2] and [3]
+// are not scientific publications, they did provide me with a comprehensive
+// insight into the algorithm. Documentation of MAGMA was largely obtained from
+// [1].
+//
+// + [1]: https://magma.maths.usyd.edu.au/magma/handbook
+// + [2]: https://mathstrek.blog/2018/06/12/schreier-sims-algorithm/
+// + [3]: https://mathstrek.blog/2018/06/21/solving-permutation-based-puzzles/
+// + [4]: "An Algorithm for Solving the Factorization Problem in Permutation
+//   Groups", T. Minkwitz (1998)
+
+// A. Some documentation on MAGMA.
+// -------------------------------
+// A permutation can be written in cycle notation as `(1,2,3)(4,5)`. Such a
+// permutation can only be created in the context of a group G. This is done by
+// coercing it into the group using the syntax `G ! ...`. To construct a group
+// of degree d from a list of generators a, b, c the following syntax is used:
+// `G := PermutationGroup< d | a, b, c >;`. MAGMA already offers the algorithms
+// we will implement, but we will only use basic information about the group.
+
+// B. The Schreier vector; determine the orbit.
+// --------------------------------------------
+
+// Compute the orbit of k in G by filling a sequence with permutations in G that
+// move k to the corresponding index. We essentially explore the subgraph
+// consiting of all points that are connected to k by edges that correspond to
+// permutations in the generating set of G.
+function Schreier_vector(G, k)
+  L := Labelling(G);
+  S := GeneratorsSequence(G);
+  // The empty orbit contains an
+  // empty list for every group element.
+  orbit := [[] : i in L];
+  // Add the first new element;
+  // the identity permutation.
+  k_idx := Index(L, k);
+  orbit[k_idx] := [Id(G)];
+  new := [k_idx];
+  // As long as new permutations have been
+  // added; try adding more points.
+  while not IsEmpty(new) do
+    next := [];
+    for i in new do
+      // Iterate all points that are reachable
+      // using one generator application.
+      for a in S do
+        j_idx := Index(L, L[i] ^ a);
+        if IsEmpty(orbit[j_idx]) then
+          g := orbit[i, 1];
+          orbit[j_idx] := [g * a];
+          Append(~next, j_idx);
+        end if;
+      end for;
+    end for;
+    // Now try to extend the
+    // newly added points.
+    new := next;
+  end while;
+  return orbit;
+end function;
+
+// Count the number of points in the given orbit.
+function Orbit_size(orbit)
+  size := 0;
+  for point in orbit do
+    if not IsEmpty(point) then
+      size := size + 1;
+    end if;
+  end for;
+  return size;
+end function;
+
+// Given a completed orbit O of k in G, Schreier's lemma gives a generator for
+// the stabilizer subgroup H of G with respect to k. From group theory we know
+// #G = #H * #O, and hence we have reduced the problem to a smaller group.
+function Schreier_subgroup(G, k, orbit)
+  L := Labelling(G);
+  S := GeneratorsSequence(G);
+  generators := [];
+  for point in orbit do
+    if not IsEmpty(point) then
+      g := point[1];
+      for a in S do
+        ag := g * a;
+        agk_idx := Index(L, k ^ ag);
+        phi := orbit[agk_idx, 1];
+        Append(~generators, ag * phi ^ -1);
+      end for;
+    end if;
+  end for;
+  H := PermutationGroup<Degree(G)|generators>;
+  return H;
+end function;
+
+// C. Sims filter; reduce the size of a generating set.
+// ----------------------------------------------------
+
+// For a permutation g on the indexed set L, determine i j such that g(i) = j
+// and for all n < i; g(n) = n. In other words; i is the smallest index that is
+// moved by g.
+function Min_move(L, g)
+  // Find the first point
+  // that is displaced by g.
+  for i in [1..#L] do
+    x := L[i];
+    y := x ^ g;
+    if not y eq x then
+      return i, Index(L, y);
+    end if;
+  end for;
+  error("Input looks like an identity permutation.");
+end function;
+
+// Reduce the defining generating set of a group G using the Sims filtering
+// method, and return a new permutation group with the new generating set.
+function Sims_filter(G)
+  L := Labelling(G);
+  S := GeneratorsSequence(G);
+  // The table contains an empty
+  // entry for every (i, j) where
+  // 1 <= i <= #L and i <= j <= #L.
+  table := [[[] : j in [i..#L]] : i in [1..#L]];
+  // Filter the generating set
+  // through the table.
+  for a in S do
+    g := a;
+    while not IsId(g) do
+      i, j := Min_move(L, g);
+      if IsEmpty(table[i, j - i]) then
+        table[i, j - i] := [g];
+        break;
+      else
+        // Note that composition in MAGMA
+        // is left-to-right! Discovering
+        // this was a bit painful.
+        h := table[i, j - i, 1];
+        g := h * g ^ -1;
+      end if;
+    end while;
+  end for;
+  // Create a new generating set.
+  generators := [];
+  for row in table do
+    for entry in row do
+      if not IsEmpty(entry) then
+        Append(~generators, entry[1]);
+      end if;
+    end for;
+  end for;
+  H := PermutationGroup<Degree(G)|generators>;
+  return H;
+end function;
+
+// D. Subgroup chain; build a chain of nested subgroups.
+// -----------------------------------------------------
+
+// Reduce the given group using the Schreier-Sims algorithm until a trivial
+// group (a group with 0 generators) is produced.
+function Subgroup_chain(G, points)
+  chain := [];
+  while Ngens(G) gt 0 and not IsEmpty(points) do
+    k := points[1];
+    print k, Ngens(G);
+    Remove(~points, 1);
+    k_orbit := Schreier_vector(G, k);
+    Append(~chain, <G, k, k_orbit>);
+    G := Schreier_subgroup(G, k, k_orbit);
+    G := Sims_filter(G);
+  end while;
+  return chain;
+end function;
+
+// Compute the group order given a complete subgroup chain.
+function Group_order(chain)
+  order := 1;
+  for sg in chain do
+    order := order * Orbit_size(sg[3]);
+  end for;
+  return order;
+end function;
+
+// E. Exhaustive word search; determine short words to solve permutations.
+// -----------------------------------------------------------------------
+// For this purpose we represent words over a generating set using sequences of
+// integers. The zero index will not be used (nor removed!), negative indices
+// represent the inverse of a generator. We include generator inverses because
+// we need to invert words. Note that words are composed right-to-left.
+
+// Cancel redundant permutations.
+function Reduce_word(w)
+  output := [];
+  for i in w do
+    last := #output;
+    if last gt 0 and i + output[last] eq 0 then
+      Remove(~output, last);
+    else
+      Append(~output, i);
+    end if;
+  end for;
+  return output;
+end function;
+
+// Apply (right-to-left) a word to an element.
+function Apply_word(S, w, x)
+  y := x;
+  for i in Reverse(w) do
+    if i lt 0 then
+      y := y ^ (S[-i] ^ -1);
+    elif i gt 0 then
+      y := y ^ S[i];
+    else
+      error("Words may not contain zeros.");
+    end if;
+  end for;
+  return y;
+end function;
+
+// Invert all generators and reverse the word.
+function Inv_word(w)
+  return Reverse([-i : i in w]);
+end function;
+
+SGS_NIL := 0;
+SGS_NEW := 1;
+SGS_OLD := 2;
+
+// Initialize an empty search table.
+function SGS_Initialize(L, chain)
+  N := [1..#L];
+  // The table contains a
+  // row for each subgroup.
+  table := [[* sg[2], Orbit_size(sg[3]) - 1,
+    [[* SGS_NIL, [] *] : i in N] *] : sg in chain];
+  // The orbit starting point is
+  // reachable with the empty word.
+  for i in [1..#chain] do
+    k := chain[i, 2];
+    k_idx := Index(L, k);
+    table[i, 3, k_idx, 1] := SGS_OLD;
+  end for;
+  return table;
+end function;
+
+// Return a word that is equivalent to perm using the SGS table.
+function SGS_Find_word(L, S, table, perm)
+  i := 0;
+  w := [];
+  for row in table do
+    // Compute j := (perm ∘ w)(k).
+    k := row[1];
+    j := Apply_word(S, w, k) ^ perm;
+    j_idx := Index(L, j);
+    // Determine if j
+    // is in the orbit.
+    orbit := row[3];
+    if orbit[j_idx, 1] eq SGS_NIL then
+      error("The SGS table is not complete.");
+    end if;
+    // Pre-apply the word
+    // that maps j to k.
+    w := w cat orbit[j_idx, 2];
+  end for;
+  // Now we have perm ∘ w = 1.
+  // Hence perm = inv w.
+  return Inv_word(w);
+end function;
+
+// Factorize a permutation in G given an SGS table for G.
+function SGS_Factorize(G, table, perm)
+  L := Labelling(G);
+  S := GeneratorsSequence(G);
+  return SGS_Find_word(L, S, table, 0, [], perm);
+end function;
+
+// Determine if all orbits in the SGS table are filled.
+function SGS_Complete(table)
+  for row in table do
+    if row[2] gt 0 then
+      return false;
+    end if;
+  end for;
+  return true;
+end function;
+
+// Set SGS_NEW flags to SGS_OLD.
+procedure SGS_Clear_flags(~table)
+  for i in [1..#table] do
+    for j in [1..#table[i, 3]] do
+      if table[i, 3, j, 1] eq SGS_NEW then
+        table[i, 3, j, 1] := SGS_OLD;
+      end if;
+    end for;
+  end for;
+end procedure;
+
+// Set word at orbit i, index j.
+procedure SGS_Set(~table, i, j, w)
+  if table[i, 3, j, 1] eq SGS_NIL then
+    table[i, 2] := table[i, 2] - 1;
+  end if;
+  table[i, 3, j, 1] := SGS_NEW;
+  table[i, 3, j, 2] := w;
+end procedure;
+
+// Add the given word to the i-th orbit.
+procedure SGS_Step(L, S, i, w, ~table, ~ret, rec)
+  // Terminate if the recursion depth is zero.
+  if rec eq 0 then
+    return;
+  end if;
+  // Determine where the given word maps k.
+  k := table[i, 1];
+  j := Apply_word(S, w, k);
+  j_idx := Index(L, j);
+  orbit := table[i, 3];
+  // Set the orbit entry if the new word is a
+  // better candidate (or if it is the first).
+  // In this case, also try the inverse of the
+  // word, which is also a group member and
+  // which is, according to Minkwitz' paper,
+  // often a good candidate. Note that this
+  // recursion should not happen more than twice.
+  // (we may waste a call to Apply_word).
+  if orbit[j_idx, 1] eq SGS_NIL then
+    w_inv := Inv_word(w);
+    SGS_Set(~table, i, j_idx, w_inv);
+    SGS_Step(L, S, i, w_inv, ~table, ~dummy, rec - 1);
+    ret := [];
+  else
+    w_old := orbit[j_idx, 2];
+    ret := Reduce_word(w_old cat w);
+    if #w le #w_old then
+      w_inv := Inv_word(w);
+      SGS_Set(~table, i, j_idx, w_inv);
+      SGS_Step(L, S, i, w_inv, ~table, ~dummy, rec - 1);
+    end if;
+  end if;
+end procedure;
+
+// Start a new round at the i-th subgroup.
+procedure SGS_Round(L, S, l, i, ~table, w)
+  while i le #table and #w gt 0 and #w le l do
+    SGS_Step(L, S, i, w, ~table, ~ret, 2);
+    w := ret;
+    i := i + 1;
+  end while;
+end procedure;
+
+// Combine newly added words.
+procedure SGS_Recycle(L, S, l, ~table)
+  for i in [1..#table] do
+    for x in table[i, 3] do
+      if not x[1] eq SGS_NIL then
+        for y in table[i, 3] do
+          if (not y[1] eq SGS_NIL) and
+            (x[1] eq SGS_NEW or y[1] eq SGS_NEW) then
+            w := Reduce_word(x[2] cat y[2]);
+            SGS_Round(L, S, l, i, ~table, w);
+          end if;
+        end for;
+      end if;
+    end for;
+  end for;
+  SGS_Clear_flags(~table);
+end procedure;
+
+// Fill higher orbits using lower orbit words. Suppose we have a permutation g
+// in the orbit of k' in Stab(G, k, k') such that g(j) = k'. Suppose the orbit
+// of k in Stab(G, k) already contains a permutation h such that h(k') = k. Then
+// (h ∘ g)(j) = k, and thus j can be added to the orbit of k.
+procedure SGS_Fill_orbits(L, l, ~table)
+  // For every orbit i go
+  // through all lower orbits j.
+  for i in [1..#table-1] do
+    for j in [i+1..#table] do
+      j_idx := Index(L, table[j, 1]);
+      j_orbit := table[j, 3];
+      // Go through the j-th orbit and try
+      // to finish its permutations with a
+      // permutation from the i-th orbit.
+      for idx in [1..#j_orbit] do
+        if not j_orbit[idx, 1] eq SGS_NIL and
+          table[i, 3, idx, 1] eq SGS_NIL then
+          if not table[i, 3, j_idx, 1] eq SGS_NIL then
+            a := j_orbit[idx, 2];
+            b := table[i, 3, j_idx, 2];
+            w := Reduce_word(b cat a);
+            if #w le l then
+              SGS_Set(~table, i, idx, w);
+            end if;
+          end if;
+        end if;
+      end for;
+    end for;
+  end for;
+end procedure;
+
+// Produce the next word. I use this rather convoluted approach to achieve the
+// same word sequence as in my Coq implementation.
+procedure SGS_Next_word(n, ~w)
+  for i in [1..#w] do
+    if w[i] gt 1 then
+      w[i] := w[i] - 1;
+      return;
+    elif w[i] eq 1 then
+      w[i] := -n;
+      return;
+    elif w[i] lt -1 then
+      w[i] := w[i] + 1;
+      return;
+    else
+      w[i] := n;
+    end if;
+  end for;
+  Append(~w, n);
+end procedure;
+
+// Run the SGS table filling algorithm for n steps, applying optimization
+// heuristics for every s steps, and starting with maximum word length l.
+procedure SGS_Run(G, n, s, ~l, ~table)
+  L := Labelling(G);
+  S := GeneratorsSequence(G);
+  i := 0;
+  t := s;
+  w := [];
+  // I use a step counter to
+  // emulate the cycle function
+  // in my Coq implementation.
+  while i lt n do
+    w_prev := w;
+    SGS_Next_word(#S, ~w);
+    if 1 lt t and #w le l then
+      SGS_Round(L, S, l, 1, ~table, w);
+      i := i + 1;
+      t := t - 1;
+    else
+      SGS_Recycle(L, S, l, ~table);
+      SGS_Fill_orbits(L, l, ~table);
+      l := l + Max(1, l div 4);
+      t := s;
+      w := w_prev;
+    end if;
+  end while;
+end procedure;
+
+function SGS_Solution_bound(table)
+  total := 0;
+  for row in table do
+    l := [];
+    for entry in row[3] do
+      if not entry[1] eq SGS_NIL then
+        Append(~l, #entry[2]);
+      end if;
+    end for;
+    total := total + Maximum(l);
+  end for;
+  return total;
+end function;
+
+function SGS_Valid(G, table, chain)
+  L := Labelling(G);
+  S := GeneratorsSequence(G);
+  ks := [];
+  for i in [1..#table] do
+    row := table[i];
+    sg := chain[i];
+    k := row[1];
+    orbit := [];
+    // Check the orbit words.
+    for i in [1..#row[3]] do
+      if not row[3, i, 1] eq SGS_NIL then
+        // The word at this position
+        // should fix ks and map i to k.
+        Append(~orbit, i);
+        for fk in ks do
+          if not Apply_word(S, row[3, i, 2], L[fk]) eq fk then
+            return false;
+          end if;
+        end for;
+        if not Apply_word(S, row[3, i, 2], L[i]) eq k then
+          return false;
+        end if;
+      end if;
+    end for;
+    // Check the orbit size.
+    if Orbit_size(sg[3]) ne #orbit then
+      return false;
+    end if;
+    // Add k to the fixed points.
+    Append(~ks, k);
+  end for;
+  return true;
+end function;
+
+// F. Example I; Upper-bound on Rubik's cube solutions
+// ---------------------------------------------------
+
+S54 := Sym(54);
+
+//
+//   \  i | j | k  /
+//    ┏━━━┳━━━┳━━━┓
+//  t ┃ a ┃ b ┃ c ┃ l
+// ---┣━━━╋━━━╋━━━┫---
+//  s ┃ h ┃   ┃ d ┃ m
+// ---┣━━━╋━━━╋━━━┫---
+//  r ┃ g ┃ f ┃ e ┃ n
+//    ┗━━━┻━━━┻━━━┛
+//   /  q | p | o  \
+//
+function Rubik_rot(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t)
+  return S54 ! (a, g, e, c) (b, h, f, d) (i, r, o, l) (j, s, p, m) (k, t, q, n);
+end function;
+
+Rubik := PermutationGroup<54|
+Rubik_rot(01,02,03,06,09,08,07,04,  39,38,37,  30,29,28,  21,20,19,  12,11,10),
+Rubik_rot(10,11,12,15,18,17,16,13,  01,04,07,  19,22,25,  46,49,52,  45,42,39),
+Rubik_rot(19,20,21,24,27,26,25,22,  07,08,09,  28,31,34,  48,47,46,  18,15,12),
+Rubik_rot(28,29,30,33,36,35,34,31,  09,06,03,  37,40,43,  54,51,48,  27,24,21),
+Rubik_rot(37,38,39,42,45,44,43,40,  03,02,01,  10,13,16,  52,53,54,  36,33,30),
+Rubik_rot(46,47,48,51,54,53,52,49,  25,26,27,  34,35,36,  43,44,45,  16,17,18)>;
+
+Rubik_seq := [
+  // top side in circular order
+  01, 02, 03, 06, 09, 08, 07, 04,
+  // middle edges in circular order
+  13, 22, 31, 40,
+  // bottom side in circular order
+  46, 47, 48, 51, 54, 53, 52, 49
+];
+
+// Test_Rubik(40000, 10000, 20);
+procedure Test_Rubik(n, s, l)
+  // Schreier-Sims.
+  chain := Subgroup_chain(Rubik, Rubik_seq);
+  printf "Group_order = %o\n", Group_order(chain);
+
+  // Minkwitz.
+  table := SGS_Initialize(Labelling(Rubik), chain);
+  SGS_Run(Rubik, n, s, ~l, ~table);
+  printf "SGS_Complete = %o\n", SGS_Complete(table);
+  printf "SGS_Valid = %o\n", SGS_Valid(Rubik, table, chain);
+  printf "SGS_Solution_bound = %o\n", SGS_Solution_bound(table);
+end procedure;
