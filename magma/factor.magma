@@ -262,9 +262,9 @@ function SGS_Find_word(L, S, table, perm)
   i := 0;
   w := [];
   for row in table do
-    // Compute j := (perm ∘ w)(k).
+    // Compute j := (w ∘ perm)(k).
     k := row[1];
-    j := Apply_word(S, w, k) ^ perm;
+    j := Apply_word(S, w, k ^ perm);
     j_idx := Index(L, j);
     // Determine if j
     // is in the orbit.
@@ -272,11 +272,12 @@ function SGS_Find_word(L, S, table, perm)
     if orbit[j_idx, 1] eq SGS_NIL then
       error("The SGS table is not complete.");
     end if;
-    // Pre-apply the word
+    // Post-apply the word
     // that maps j to k.
-    w := w cat orbit[j_idx, 2];
+    w := orbit[j_idx, 2] cat w;
+    // Now (w ∘ perm)(k) = k.
   end for;
-  // Now we have perm ∘ w = 1.
+  // Now we have w ∘ perm = 1.
   // Hence perm = inv w.
   return Inv_word(w);
 end function;
@@ -285,7 +286,7 @@ end function;
 function SGS_Factorize(G, table, perm)
   L := Labelling(G);
   S := GeneratorsSequence(G);
-  return SGS_Find_word(L, S, table, 0, [], perm);
+  return SGS_Find_word(L, S, table, perm);
 end function;
 
 // Determine if all orbits in the SGS table are filled.
@@ -459,6 +460,7 @@ procedure SGS_Run(G, n, s, ~l, ~table)
   end while;
 end procedure;
 
+// Compute an upper bound on solutions.
 function SGS_Solution_bound(table)
   total := 0;
   for row in table do
@@ -473,6 +475,7 @@ function SGS_Solution_bound(table)
   return total;
 end function;
 
+// Check if the SGS table is valid.
 function SGS_Valid(G, table, chain)
   L := Labelling(G);
   S := GeneratorsSequence(G);
@@ -485,15 +488,16 @@ function SGS_Valid(G, table, chain)
     // Check the orbit words.
     for i in [1..#row[3]] do
       if not row[3, i, 1] eq SGS_NIL then
+        w := row[3, i, 2];
         // The word at this position
         // should fix ks and map i to k.
         Append(~orbit, i);
         for fk in ks do
-          if not Apply_word(S, row[3, i, 2], L[fk]) eq fk then
+          if not Apply_word(S, w, L[fk]) eq fk then
             return false;
           end if;
         end for;
-        if not Apply_word(S, row[3, i, 2], L[i]) eq k then
+        if not Apply_word(S, w, L[i]) eq k then
           return false;
         end if;
       end if;
@@ -558,3 +562,34 @@ procedure Test_Rubik(n, s, l)
   printf "SGS_Valid = %o\n", SGS_Valid(Rubik, table, chain);
   printf "SGS_Solution_bound = %o\n", SGS_Solution_bound(table);
 end procedure;
+
+// G. Example II; Solving the Twiddle puzzle
+// -----------------------------------------
+// A simpler but still quite non-trivial permutation puzzle can be found at:
+// https://www.chiark.greenend.org.uk/~sgtatham/puzzles/js/twiddle.html.
+//
+// To solve a game, follow these steps:
+// 1. Create an SGS table: `c, t := Create_table(Twiddle);`
+// 2. Set an initial word length: `l := 5;`
+// 3. Repeat until complete: `Fill_table(Twiddle, ~t, ~l, 1000);`
+// 4. Click `by game ID` and copy the permutation from the URL.
+// 5. Obtain the solution: `Find_solution(Twiddle, t, [<permutation>]);`
+
+Twiddle := PermutationGroup<9|(1,4,5,2),(2,5,6,3),(4,7,8,5),(5,8,9,6)>;
+
+function Create_table(G)
+  points := IndexedSetToSequence(Labelling(G));
+  chain := Subgroup_chain(G, points);
+  table := SGS_Initialize(Labelling(Rubik), chain);
+  return chain, table;
+end function;
+
+procedure Fill_table(G, ~table, ~l, n)
+  SGS_Run(Twiddle, n, Ngens(G) ^ 2, ~l, ~table);
+  SGS_Complete(table);
+end procedure;
+
+function Find_solution(G, table, input)
+  perm := Sym(Degree(G)) ! input;
+  return Inv_word(SGS_Factorize(G, table, perm));
+end function;
