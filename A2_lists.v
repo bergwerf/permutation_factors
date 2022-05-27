@@ -84,4 +84,4 @@ End Well_founded_induction.
 End Lists.
 
 Global Hint Resolve incl_nil_l firstn_incl skipn_incl : datatypes.
-Hint Rewrite firstn_length skipn_length : list.
+Global Hint Rewrite firstn_length skipn_length : list.

@@ -1,7 +1,7 @@
 (* String printing facilities. *)
 
 From CGT Require Import A1_setup B2_perm B3_word.
-Require Import Byte Ascii String DecimalString.
+Require Import Init.Byte Ascii String DecimalString.
 
 Local Open Scope string_scope.
 

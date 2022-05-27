@@ -454,7 +454,7 @@ Proof.
 intros i; rewrite ?apply_compose; easy.
 Qed.
 
-Instance fmap_equivalence :
+Global Instance fmap_equivalence :
   Equivalence Equivalent.
 Proof.
 split; try easy. intros f g h Hf Hg i.
