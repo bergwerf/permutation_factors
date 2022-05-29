@@ -14,11 +14,9 @@ in the following articles: [1], [2]. These articles have been archived in the
 
 Puzzles
 -------
-The `E` prefixed files contain definitions of permutation puzzles, and examples
-of using the algorithms that are implemented in this project. I hope that
-analysis of Rubik's cube will be feasible within Coq. Note that the first three
-puzzles only work well on computer screens, while the latter three exist as
-physical objects.
+This is a list of permutation puzzles that can be used as examples. Note that
+the first three puzzles only work well on computer screens, while the latter
+three exist as physical objects.
 
 1. **Cruzzle** I gave this name to a simple kind of turning puzzle. An image is
    cut into a grid where the rows and columns can revolve around. I found that
