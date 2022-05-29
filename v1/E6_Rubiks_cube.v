@@ -70,7 +70,7 @@ Definition order := [
 Definition chain := SGChain.build gen order.
 
 (* Computing this subgroup chain takes around half a minute. *)
-(* Eval vm_compute in SGS.save_orbits chain. *)
+(* Compute SGS.save_orbits chain. *)
 
 Definition orbits := [
   (01, 24%nat); (02, 24%nat); (03, 21%nat); (06, 22%nat); 
@@ -79,6 +79,9 @@ Definition orbits := [
   (46, 12%nat); (47, 08%nat); (48, 09%nat); (51, 06%nat); 
   (54, 06%nat); (53, 02%nat)
 ].
+
+(* The order of the Rubik's cube group is 43252003274489856000. *)
+Compute fold_left Pos.mul (map Pos.of_nat (map snd orbits)) 1.
 
 (***
 :: Number of configurations of Rubik's cube ::
@@ -107,7 +110,7 @@ is 176. This is not a very good upper bound; Rubik's cube can in general be
 solved using at most 20 face turns (http://www.cube20.org/), but this result
 required a specialized proof which took decades to discover.
 *)
-Eval vm_compute in
+Compute
   let complete := SGS.complete sgs in
   let valid := SGS.valid sgs gen orbits in
   let word_length fw := List.length (snd fw) in

@@ -37,10 +37,10 @@ Definition sgs := SGS.fill table gen 200 25 2.
   (map fst (map fst chain))). *)
 
 (* Show that all orbits are filled. *)
-Eval cbv in SGS.complete sgs.
+Compute SGS.complete sgs.
 
 (* Print it as a table. *)
-Eval cbv in print_table "│" [" "; "─"] (
+Compute print_table "│" [" "; "─"] (
   ("" :: map print_positive range) ::
   ("" :: repeat "" (List.length range)) ::
   map (λ row, match row with (k, _, orbit) =>
@@ -73,7 +73,7 @@ revert it back into the identity permutation.
 ┗━━━┻━━━┻━━━┛
 Solution: h2v3'v2h2v1h2'.
 *)
-Eval cbv in
+Compute
   let π := create_perm [5; 1; 6; 3; 4; 2] in
   match SGS.factorize sgs gen π with
   | Some w => print_word gen_names (inv_word w)
