@@ -8,6 +8,12 @@ formally prove Rubik's cube indeed has *43252003274489856000* possible
 configurations.
 
 I gained some experience using the std++ Coq library, and I think it can be used
-to greatly simplify the proof burder for this project. The `fmap` (finite map)
+to greatly simplify the proof burden for this project. The `fmap` (finite map)
 type could be replaced with `Pmap_raw` from std++. Introducing this change
 in-place is too difficult, so I will have to start from scratch.
+
+Code extraction
+---------------
+Instead of focussing on efficient evaluation inside Coq, I think it is better to
+focus on code extraction, and use sigma types whenever needed. This will greatly
+simplify proofs.
