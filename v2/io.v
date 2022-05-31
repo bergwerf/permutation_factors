@@ -1,12 +1,8 @@
 (* Input and output of permutations. *)
 
-Require Import PArith DecimalString.
-From stdpp Require Import base list strings pmap.
-
-Global Open Scope positive_scope.
-Global Open Scope list_scope.
-
-Definition perm := Pmap positive.
+Require Import DecimalString.
+From stdpp Require Import strings.
+From permlib Require Import perm.
 
 Module Cycles.
 
@@ -42,19 +38,7 @@ Definition unpack (π : perm) : list cycle := map
   (fold_left (λ cs m, match m with (i, j) =>
       if decide (i = j) then cs
       else linear_insert cs i [] j end)
-    (Pto_list π) []).
-
-(* Convert cycles to pmap. *)
-
-Fixpoint pack_cycle (π : perm) (c : cycle) :=
-  match c with
-  | [] => π
-  | [_] => π
-  | i :: (j :: _) as c' => <[i:=j]>(pack_cycle π c')
-  end.
-
-Definition pack (cs : list cycle) : perm :=
-  fold_left pack_cycle cs ∅.
+    (map_to_list π) []).
 
 (* Print a permutation using cycle notation. *)
 
