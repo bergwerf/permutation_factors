@@ -1,5 +1,7 @@
 (* Permutations based on Pmap from std++. *)
 
+Require Import DecimalString.
+From stdpp Require Import strings.
 From stdpp Require Export base numbers option list pmap.
 
 Global Open Scope positive_scope.
@@ -109,3 +111,46 @@ destruct (τ_m !! i) as [i1|]; cbn; unfold pmap_f.
 destruct (π_m !! i) as [i0|], (π_m !! i1); done.
 destruct (π_m !! i) as [i0|]; done.
 Qed.
+
+Section Printing.
+
+Definition cycle := list positive.
+
+(* Append a cycle segment to a list of cycles. *)
+Fixpoint cycles_add (cycles : list (positive * cycle * positive))
+  (i0 : positive) (is : cycle) (ik : positive) :=
+  match cycles with
+  | [] => [(i0, is, ik)]
+  | (j0, js, jk) :: cs =>
+    if decide (ik = j0)
+    then cycles_add cs i0 (is ++ [ik] ++ js) jk
+    else if decide (i0 = jk)
+    then cycles_add cs j0 (js ++ [i0] ++ is) ik
+    else (j0, js, jk) :: cycles_add cs i0 is ik
+  end.
+
+(* Convert a permutation to a list of cycles. *)
+Definition perm_cycles (π : perm) : list cycle :=
+  (λ c, match c with (i0, is, ik) => i0 :: is ++ [ik] end) <$>
+  (foldl (λ cs m, match m with (i, j) =>
+    if decide (i = j) then cs
+    else cycles_add cs i [] j end)
+    [] (map_to_list π)).
+
+Fixpoint str_join (sep : string) (l : list string) :=
+  match l with
+  | [] => ""
+  | [x] => x
+  | x :: l' => x +:+ sep +:+ str_join sep l'
+  end.
+
+Definition str_of_pos i :=
+  NilZero.string_of_uint (Pos.to_uint i).
+
+Definition str_of_cycle (c : cycle) :=
+  "(" +:+ str_join " " (map str_of_pos (removelast c)) +:+ ")".
+
+Definition str_of_perm (π : perm) :=
+  str_join "" (str_of_cycle <$> perm_cycles π).
+
+End Printing.
