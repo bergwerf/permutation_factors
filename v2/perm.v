@@ -19,6 +19,8 @@ Definition pmap_invert (m : Pmap positive) : Pmap positive :=
 Definition pmap_compose (m1 m2 : Pmap positive) : Pmap positive :=
   merge (from_option Some) m2 (pmap_f m2 <$> m1).
 
+Section Bijection.
+
 Lemma contra {P Q : Prop} :
   (P -> Q) -> ¬ Q -> ¬ P.
 Proof. auto. Qed.
@@ -80,6 +82,8 @@ destruct (m2 !! x), (m2 !! y); done.
 destruct (m2 !! x); done.
 Qed.
 
+End Bijection.
+
 Inductive perm := Perm {
   perm_car  : Pmap positive;
   perm_inj  : Inj eq eq (pmap_f perm_car);
@@ -111,6 +115,7 @@ Definition perm_compose (π τ : perm) :=
 
 Notation "⟨ i ; j ⟩" := (perm_swap i j) (format "⟨ i ;  j ⟩").
 Notation "π ⋅ τ" := (perm_compose τ π) (at level 15).
+Notation "(⋅)" := perm_compose (only parsing).
 Notation inv := perm_invert.
 
 Definition perm_cycle (i : positive) (is : list positive) : perm :=
@@ -120,7 +125,21 @@ Notation "⟨ i ; x ; y ; .. ; z ⟩" :=
   (perm_cycle i (cons x (cons y .. (cons z nil) ..)))
   (format "⟨ i ;  x ;  y ;  .. ;  z ⟩").
 
-Theorem lookup_compose π τ i :
+Section Group.
+
+Class Group (X : Type) `{_equiv : Equiv X}
+  (f : X -> X -> X) (inv : X -> X) (e : X) : Prop :=
+{
+  Group_Equivalence :> Equivalence (≡);
+  Group_Proper      :> Proper ((≡) ==> (≡) ==> (≡)) f;
+  Group_Assoc       :> Assoc (≡) f;
+  Group_LeftId      :> LeftId (≡) e f;
+  Group_RightId     :> RightId (≡) e f;
+  left_inv x        : f (inv x) x ≡ e;
+  right_inv x       : f x (inv x) ≡ e;
+}.
+
+Lemma lookup_compose π τ i :
   π ⋅ τ !!! i = π !!! (τ !!! i).
 Proof.
 destruct τ as [τ_m ? ?], π as [π_m ? ?]; unfold lookup_total, perm_lookup; cbn.
@@ -130,7 +149,17 @@ destruct (π_m !! i) as [i0|], (π_m !! i1); done.
 destruct (π_m !! i) as [i0|]; done.
 Qed.
 
-Section Printing.
+Global Instance : Equiv perm :=
+  λ τ π, ∀ i, τ !!! i = π !!! i.
+
+Global Instance :
+  Group _ (⋅) inv ∅.
+Proof.
+Admitted.
+
+End Group.
+
+Section Print.
 
 Definition cycle := list positive.
 
@@ -171,4 +200,4 @@ Definition str_of_cycle (c : cycle) :=
 Definition str_of_perm (π : perm) :=
   str_join "" (str_of_cycle <$> perm_cycles π).
 
-End Printing.
+End Print.
