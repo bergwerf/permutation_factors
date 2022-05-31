@@ -13,6 +13,9 @@ Definition pmap_f (m : Pmap positive) (i : positive) : positive :=
 Definition pmap_swap (i j : positive) : Pmap positive :=
   {[i:=j; j:=i]}.
 
+Definition pmap_invert (m : Pmap positive) : Pmap positive :=
+  foldl (λ m' ij, match ij with (i, j) => <[j:=i]> m' end) ∅ (map_to_list m).
+
 Definition pmap_compose (m1 m2 : Pmap positive) : Pmap positive :=
   merge (from_option Some) m2 (pmap_f m2 <$> m1).
 
@@ -37,6 +40,16 @@ Admitted.
 
 Lemma pmap_swap_surj i j :
   Surj eq (pmap_f (pmap_swap i j)).
+Proof.
+Admitted.
+
+Lemma pmap_invert_inj m :
+  Inj eq eq (pmap_f (pmap_invert m)).
+Proof.
+Admitted.
+
+Lemma pmap_invert_surj m :
+  Surj eq (pmap_f (pmap_invert m)).
 Proof.
 Admitted.
 
@@ -85,6 +98,10 @@ Global Instance : Empty perm :=
 Definition perm_swap (i j : positive) :=
   Perm _ (pmap_swap_inj i j) (pmap_swap_surj i j).
 
+Definition perm_invert (π : perm) :=
+  let (π_m, π_inj, π_surj) := π in
+  Perm _ (pmap_invert_inj π_m) (pmap_invert_surj π_m).
+
 Definition perm_compose (π τ : perm) :=
   let (π_m, π_inj, π_surj) := π in
   let (τ_m, τ_inj, τ_surj) := τ in
@@ -94,6 +111,7 @@ Definition perm_compose (π τ : perm) :=
 
 Notation "⟨ i ; j ⟩" := (perm_swap i j) (format "⟨ i ;  j ⟩").
 Notation "π ⋅ τ" := (perm_compose τ π) (at level 15).
+Notation inv := perm_invert.
 
 Definition perm_cycle (i : positive) (is : list positive) : perm :=
   foldl (λ π j, ⟨i; j⟩ ⋅ π) ∅ is.
