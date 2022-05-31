@@ -12,14 +12,23 @@ Definition perm_lookup_raw (m : Pmap positive) (i : positive) : positive :=
 Definition perm_compose_raw (m1 m2 : Pmap positive) : Pmap positive :=
   merge (from_option Some) m2 (perm_lookup_raw m2 <$> m1).
 
+Lemma contra {P Q : Prop} :
+  (P -> Q) -> ¬ Q -> ¬ P.
+Proof. auto. Qed.
+
 Lemma perm_compose_raw_inj (m1 m2 : Pmap positive) :
   Inj eq eq (perm_lookup_raw m1) ->
   Inj eq eq (perm_lookup_raw m2) ->
   Inj eq eq (perm_lookup_raw (perm_compose_raw m1 m2)).
 Proof.
-intros H1 H2 x1 x2; unfold perm_lookup_raw, perm_compose_raw.
+intros H1 H2 x1 x2; repeat unfold perm_lookup_raw, perm_compose_raw in *.
 rewrite ?lookup_merge, ?lookup_fmap; intros H3.
-Admitted.
+destruct (decide (x1 = x2)) as [H4|H4]; [done|exfalso].
+assert (H5 := contra (H1 _ _) H4); cbn in *;
+repeat destruct (m1 !! _); cbn in *;
+assert (H6 := contra (H2 _ _) H5); cbn in *;
+repeat destruct (m2 !! _); done.
+Qed.
 
 Lemma perm_compose_raw_surj (m1 m2 : Pmap positive) :
   Surj eq (perm_lookup_raw m1) ->
