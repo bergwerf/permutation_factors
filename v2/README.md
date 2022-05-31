@@ -9,11 +9,5 @@ configurations.
 
 I gained some experience using the std++ Coq library, and I think it can be used
 to greatly simplify the proof burden for this project. The `fmap` (finite map)
-type could be replaced with `Pmap_raw` from std++. Introducing this change
-in-place is too difficult, so I will have to start from scratch.
-
-Code extraction
----------------
-Instead of focussing on efficient evaluation inside Coq, I think it is better to
-focus on code extraction, and use sigma types whenever needed. This will greatly
-simplify proofs.
+type could be replaced with `Pmap` from std++. Introducing this change in-place
+is too difficult, so I will have to start from scratch.
