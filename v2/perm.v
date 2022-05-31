@@ -13,47 +13,54 @@ Definition pmap_f (m : Pmap positive) (i : positive) : positive :=
 Definition pmap_swap (i j : positive) : Pmap positive :=
   {[i:=j; j:=i]}.
 
-Definition pmap_invert (m : Pmap positive) : Pmap positive :=
-  foldl (λ m' ij, match ij with (i, j) => <[j:=i]> m' end) ∅ (map_to_list m).
-
 Definition pmap_compose (m1 m2 : Pmap positive) : Pmap positive :=
   merge (from_option Some) m2 (pmap_f m2 <$> m1).
 
+Definition pair_swap {X} (p : X * X) :=
+  match p with (x1, x2) => (x2, x1) end.
+
+Definition pmap_invert (m : Pmap positive) : Pmap positive :=
+  list_to_map (pair_swap <$> map_to_list m).
+
+(* TODO: The bijection can be restricted to the lookup. *)
 Section Bijection.
 
 Lemma contra {P Q : Prop} :
   (P -> Q) -> ¬ Q -> ¬ P.
-Proof. auto. Qed.
+Proof.
+auto.
+Qed.
 
 Lemma pmap_empty_inj :
   Inj eq eq (pmap_f ∅).
 Proof.
-Admitted.
+intros x1 x2; done.
+Qed.
 
 Lemma pmap_empty_surj :
   Surj eq (pmap_f ∅).
 Proof.
-Admitted.
+intros x; exists x; done.
+Qed.
 
 Lemma pmap_swap_inj i j :
   Inj eq eq (pmap_f (pmap_swap i j)).
 Proof.
-Admitted.
+intros x1 x2; unfold pmap_f, pmap_swap.
+destruct (decide (x1 = i)) as [->|], (decide (x2 = i)) as [->|]; simpl_map.
+4,3: destruct (decide (x1 = j)) as [->|]; simpl_map.
+2,5,6: destruct (decide (x2 = j)) as [->|]; simpl_map.
+all: done.
+Qed.
 
 Lemma pmap_swap_surj i j :
   Surj eq (pmap_f (pmap_swap i j)).
 Proof.
-Admitted.
-
-Lemma pmap_invert_inj m :
-  Inj eq eq (pmap_f (pmap_invert m)).
-Proof.
-Admitted.
-
-Lemma pmap_invert_surj m :
-  Surj eq (pmap_f (pmap_invert m)).
-Proof.
-Admitted.
+intros y; unfold pmap_f, pmap_swap.
+destruct (decide (y = j)) as [->|]. exists i; simpl_map; done.
+destruct (decide (y = i)) as [->|]. exists j; simpl_map; done.
+exists y; simpl_map; done.
+Qed.
 
 Lemma pmap_compose_inj (m1 m2 : Pmap positive) :
   Inj eq eq (pmap_f m1) ->
@@ -82,6 +89,57 @@ destruct (m2 !! x), (m2 !! y); done.
 destruct (m2 !! x); done.
 Qed.
 
+Section Invert.
+
+Local Ltac simpl_elem_of :=
+  repeat match goal with
+  | H : (?x, ?y) ∈ ?f <$> ?l |- _ =>
+    let H1 := fresh H in
+    apply elem_of_list_fmap in H as ([] & H1 & H);
+    injection H1; clear H1; intros <- <-
+  | H : _ ∈ map_to_list _ |- _ =>
+    apply elem_of_map_to_list in H
+  end.
+
+Lemma pmap_invert_spec m x :
+  Inj eq eq (pmap_f m) ->
+  Surj eq (pmap_f m) ->
+  pmap_f (pmap_invert m) (pmap_f m x) = x.
+Proof.
+intros inj surj; unfold pmap_f, pmap_invert.
+destruct (list_to_map _ !! _) as [x'|] eqn:Hx'; cbn in *.
+- apply elem_of_list_to_map in Hx'. simpl_elem_of.
+  destruct (m !! x) as [x''|] eqn:Hx; cbn in *. admit.
+  destruct (surj x) as [y]; unfold pmap_f in H. admit.
+  apply NoDup_fmap_fst; intros. simpl_elem_of. admit.
+  apply NoDup_fmap. admit. admit.
+- apply not_elem_of_list_to_map in Hx'.
+  destruct (m !! x) as [y|] eqn:Hy; cbn in *; [exfalso|done].
+  apply Hx', elem_of_list_fmap; exists (y, x); split; [done|].
+  apply elem_of_list_fmap; exists (x, y); split; [done|].
+  apply elem_of_map_to_list; done.
+Admitted.
+
+Lemma pmap_invert_inj m :
+  Inj eq eq (pmap_f m) ->
+  Surj eq (pmap_f m) ->
+  Inj eq eq (pmap_f (pmap_invert m)).
+Proof.
+intros inj surj x1 x2; destruct (surj x1) as [y1 <-], (surj x2) as [y2 <-].
+rewrite ?pmap_invert_spec. congruence. all: done.
+Qed.
+
+Lemma pmap_invert_surj m :
+  Inj eq eq (pmap_f m) ->
+  Surj eq (pmap_f m) ->
+  Surj eq (pmap_f (pmap_invert m)).
+Proof.
+intros inj surj y; exists (pmap_f m y).
+apply pmap_invert_spec; done.
+Qed.
+
+End Invert.
+
 End Bijection.
 
 Inductive perm := Perm {
@@ -102,16 +160,16 @@ Global Instance : Empty perm :=
 Definition perm_swap (i j : positive) :=
   Perm _ (pmap_swap_inj i j) (pmap_swap_surj i j).
 
-Definition perm_invert (π : perm) :=
-  let (π_m, π_inj, π_surj) := π in
-  Perm _ (pmap_invert_inj π_m) (pmap_invert_surj π_m).
-
 Definition perm_compose (π τ : perm) :=
   let (π_m, π_inj, π_surj) := π in
-  let (τ_m, τ_inj, τ_surj) := τ in
-  Perm (pmap_compose π_m τ_m)
+  let (τ_m, τ_inj, τ_surj) := τ in Perm _
     (pmap_compose_inj _ _ π_inj τ_inj)
     (pmap_compose_surj _ _ π_surj τ_surj).
+
+Definition perm_invert (π : perm) :=
+  let (π_m, π_inj, π_surj) := π in Perm _
+    (pmap_invert_inj π_m π_inj π_surj)
+    (pmap_invert_surj π_m π_inj π_surj).
 
 Notation "⟨ i ; j ⟩" := (perm_swap i j) (format "⟨ i ;  j ⟩").
 Notation "π ⋅ τ" := (perm_compose τ π) (at level 15).
