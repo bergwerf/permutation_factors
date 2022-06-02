@@ -350,7 +350,7 @@ Qed.
 
 End Group.
 
-Section Print.
+Section Format.
 
 Definition cycle := list positive.
 
@@ -391,4 +391,4 @@ Definition str_of_cycle (c : cycle) :=
 Definition str_of_perm (π : perm) :=
   str_join "" (str_of_cycle <$> perm_cycles π).
 
-End Print.
+End Format.
