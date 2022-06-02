@@ -1,4 +1,6 @@
 -R . permlib
 
 perm.v
+order.v
 Schreier_Sims.v
+Schreier_Sims_proofs.v

@@ -135,4 +135,7 @@ Definition build gen ks :=
   let depth := Pos.size_nat range in
   loop (Pos.to_nat range) gen ks.
 
+Definition order (C : chain) :=
+  foldl Pos.mul 1 (Pos.of_nat ∘ size <$> C.*2).
+
 End SGChain.
