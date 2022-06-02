@@ -39,10 +39,8 @@ Local Ltac simpl_inj :=
 
 Local Ltac simpl_elem_of :=
   repeat match goal with
-  | H : (?x, ?y) ∈ ?f <$> ?l |- _ =>
-    let H1 := fresh H in
-    apply elem_of_list_fmap in H as ([] & H1 & H);
-    injection H1; clear H1; intros <- <-
+  | H : ?x ∈ ?f <$> ?l |- _ =>
+    apply elem_of_list_fmap in H as ([] & ? & H)
   | H : _ ∈ map_to_list _ |- _ =>
     apply elem_of_map_to_list in H
   end.
@@ -203,11 +201,34 @@ Qed.
 Lemma NoDup_fst_prod_swap_map_to_list (m : Pmap positive) :
   FinInj m -> NoDup (prod_swap <$> map_to_list m).*1.
 Proof.
-intros inj; apply NoDup_fmap_fst; intros. simpl_elem_of; simpl_inj; done.
+intros inj; apply NoDup_fmap_fst; intros.
+simpl_elem_of; simplify_eq/=; simpl_inj; done.
 apply NoDup_fmap. apply prod_swap_inj. apply NoDup_map_to_list.
 Qed.
 
-Lemma pmap_invert_spec m x y :
+Lemma pmap_invert_None m x :
+  FinInj m -> FinSurj m -> m !! x = None -> pmap_invert m !! x = None.
+Proof.
+(* This is NOT a direct consequence of the other lemmas, since pmap_invert would
+still be allowed to contain redundant identity mappings that are not in m.
+According to this lemma it does not contain such redundant mappings. *)
+unfold pmap_invert; intros inj surj Hx; apply not_elem_of_list_to_map; intros H.
+assert (co_surj : FinCoSurj m) by now apply fcosurj_if_finj_fsurj.
+simpl_elem_of; simplify_eq/=; apply co_surj in H as []; congruence.
+Qed.
+
+Lemma pmap_invert_None_inv m x :
+  FinSurj m -> pmap_invert m !! x = None -> m !! x = None.
+Proof.
+unfold pmap_invert; intros surj Hx.
+destruct (m !! x) as [y|] eqn:H; [exfalso|done]; apply surj in H as [z].
+apply not_elem_of_list_to_map in Hx; apply Hx; clear Hx.
+apply elem_of_list_fmap; exists (x, z); repeat split. 
+apply elem_of_list_fmap; exists (z, x); repeat split.
+apply elem_of_map_to_list; done.
+Qed.
+
+Lemma pmap_invert_Some m x y :
   FinInj m -> m !! x = Some y -> pmap_invert m !! y = Some x.
 Proof.
 unfold pmap_invert; intros inj Hx; apply elem_of_list_to_map.
@@ -216,27 +237,28 @@ apply elem_of_list_fmap; exists (x, y); repeat split.
 apply elem_of_map_to_list; done.
 Qed.
 
-Lemma pmap_invert_spec_inv m x y :
+Lemma pmap_invert_Some_inv m x y :
   FinInj m -> pmap_invert m !! y = Some x -> m !! x = Some y.
 Proof.
 unfold pmap_invert; intros inj Hy; apply elem_of_list_to_map in Hy.
-simpl_elem_of; done. apply NoDup_fst_prod_swap_map_to_list; done.
+simpl_elem_of; simplify_eq/=; done.
+apply NoDup_fst_prod_swap_map_to_list; done.
 Qed.
 
 Lemma pmap_invert_inj m :
   FinInj m -> FinInj (pmap_invert m).
 Proof.
 intros inj x1 x2 y H1 H2.
-apply pmap_invert_spec_inv in H1, H2; [congruence|done|done].
+apply pmap_invert_Some_inv in H1, H2; [congruence|done|done].
 Qed.
 
 Lemma pmap_invert_surj m :
   FinInj m -> FinSurj m -> FinSurj (pmap_invert m).
 Proof.
-intros inj surj y z Hy; apply pmap_invert_spec_inv in Hy; [|done].
+intros inj surj y z Hy; apply pmap_invert_Some_inv in Hy; [|done].
 assert (co_surj : FinCoSurj m) by now apply fcosurj_if_finj_fsurj.
 apply co_surj in Hy as [x Hx]; exists x.
-apply pmap_invert_spec; done.
+apply pmap_invert_Some; done.
 Qed.
 
 End Invert.
@@ -314,7 +336,17 @@ Global Instance : Equiv perm :=
 Global Instance :
   Group _ (⋅) inv ∅.
 Proof.
-Admitted.
+split; repeat intros ?; rewrite ?lookup_compose; cbn; try done.
+split; congruence. etrans; auto; f_equal; done.
+all: unfold lookup_total, perm_lookup, pmap_apply.
+all: destruct x as [m inj surj]; cbn.
+- destruct (_ !! i) eqn:H; cbn.
+  apply pmap_invert_Some_inv in H as ->; done.
+  apply pmap_invert_None_inv in H as ->; done.
+- destruct (_ !! i) eqn:H; cbn.
+  apply pmap_invert_Some in H as ->; done.
+  apply pmap_invert_None in H as ->; done.
+Qed.
 
 End Group.
 
