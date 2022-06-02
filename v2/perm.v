@@ -22,21 +22,29 @@ Definition pmap_compose (m1 m2 : Pmap positive) : Pmap positive :=
 Definition pmap_invert (m : Pmap positive) : Pmap positive :=
   list_to_map (prod_swap <$> map_to_list m).
 
-Definition FinInj (m : Pmap positive) :=
+Definition FinInj `{Lookup X X (M X)} (m : M X) :=
   ∀ x1 x2 y, m !! x1 = Some y -> m !! x2 = Some y -> x1 = x2.
 
-Definition FinSurj (m : Pmap positive) :=
+Definition FinSurj `{Lookup X X (M X)} (m : M X) :=
   ∀ y z, m !! y = Some z -> ∃ x, m !! x = Some y.
 
-Definition FinCoSurj (m : Pmap positive) :=
+Definition FinCoSurj `{Lookup X X (M X)} (m : M X) :=
   ∀ x y, m !! x = Some y -> ∃ z, m !! y = Some z.
-
-Section Bijection.
 
 Local Ltac simpl_inj :=
   repeat match goal with
   | inj : FinInj ?m, H1 : ?m !! ?i = Some ?y, H2 : ?m !! ?j = Some ?y |- _ =>
     let H := fresh in assert (H := inj _ _ _ H1 H2); clear H1; subst
+  end.
+
+Local Ltac simpl_elem_of :=
+  repeat match goal with
+  | H : (?x, ?y) ∈ ?f <$> ?l |- _ =>
+    let H1 := fresh H in
+    apply elem_of_list_fmap in H as ([] & H1 & H);
+    injection H1; clear H1; intros <- <-
+  | H : _ ∈ map_to_list _ |- _ =>
+    apply elem_of_map_to_list in H
   end.
 
 Local Ltac simpl_lookup :=
@@ -49,10 +57,31 @@ Local Ltac simpl_lookup :=
     apply lookup_delete_Some in H as []
   end.
 
+Section Bijection.
+
+Section Pmap_Bijection.
+
+Lemma finj_if_inj m :
+  Inj eq eq (pmap_apply m) -> FinInj m.
+Proof.
+unfold pmap_apply; intros inj x1 x2 y H1 H2.
+apply inj; rewrite H1, H2; done.
+Qed.
+
+Lemma fsurj_iff_surj m :
+  Surj eq (pmap_apply m) ↔ FinSurj m.
+Proof.
+unfold pmap_apply; split; intros surj y.
+- intros z Hz; destruct (surj y) as [x Hy], (m !! x) eqn:Hx; cbn in Hy; subst.
+  eexists; done. congruence.
+- destruct (m !! y) eqn:H. apply surj in H as [x]; exists x; rewrite H; done.
+  exists y; rewrite H; done.
+Qed.
+
 Local Ltac decide_neq P :=
   destruct (decide P); [subst; congruence|].
 
-Lemma fin_co_surj m :
+Lemma fcosurj_if_finj_fsurj (m : Pmap positive) :
   FinInj m -> FinSurj m -> FinCoSurj m.
 Proof.
 remember (size m) as n; revert Heqn; revert m.
@@ -73,72 +102,44 @@ induction n; intros m Hn inj surj; symmetry in Hn.
       decide_neq (x' = u); decide_neq (x' = x). exists x'; simpl_map; done.
 Qed.
 
-Theorem pmap_apply_inj m :
+Lemma inj_if_finj_fsurj m :
   FinInj m -> FinSurj m -> Inj eq eq (pmap_apply m).
 Proof.
-intros inj surj x1 x2; unfold pmap_apply.
-assert (co_surj : FinCoSurj m) by now apply fin_co_surj.
+unfold pmap_apply; intros inj surj x1 x2.
+assert (co_surj : FinCoSurj m) by now apply fcosurj_if_finj_fsurj.
 destruct (m !! x1) eqn:H1, (m !! x2) eqn:H2; cbn; intros; subst.
 eapply inj; done. apply co_surj in H1 as []; congruence.
 apply co_surj in H2 as []; congruence. done.
 Qed.
 
-Theorem pmap_apply_surj m :
-  FinSurj m -> Surj eq (pmap_apply m).
-Proof.
-intros surj y; unfold pmap_apply; destruct (m !! y) eqn:H.
-apply surj in H as [x]; exists x; rewrite H; done.
-exists y; rewrite H; done.
-Qed.
+End Pmap_Bijection.
 
-Lemma pmap_empty_fin_inj :
-  FinInj ∅.
+Lemma pmap_empty_inj :
+  FinInj (∅ : Pmap positive).
 Proof.
 done.
 Qed.
 
-Lemma pmap_empty_fin_surj :
-  FinSurj ∅.
+Lemma pmap_empty_surj :
+  FinSurj (∅ : Pmap positive).
 Proof.
 intros x; done.
 Qed.
 
-Lemma pmap_empty_inj :
-  Inj eq eq (pmap_apply ∅).
-Proof.
-apply pmap_apply_inj. apply pmap_empty_fin_inj. apply pmap_empty_fin_surj.
-Qed.
-
-Lemma pmap_empty_surj :
-  Surj eq (pmap_apply ∅).
-Proof.
-apply pmap_apply_surj, pmap_empty_fin_surj.
-Qed.
-
-Lemma pmap_swap_fin_inj i j :
+Lemma pmap_swap_inj i j :
   FinInj (pmap_swap i j).
 Proof.
 intros x1 x2; unfold pmap_swap; intros; simpl_lookup; subst; done.
 Qed.
 
-Lemma pmap_swap_fin_surj i j :
+Lemma pmap_swap_surj i j :
   FinSurj (pmap_swap i j).
 Proof.
 intros y z; unfold pmap_swap; intros; exists z.
 destruct (decide (i = j)); simpl_lookup; subst; simplify_map_eq; done.
 Qed.
 
-Lemma pmap_swap_inj i j :
-  Inj eq eq (pmap_apply (pmap_swap i j)).
-Proof.
-apply pmap_apply_inj. apply pmap_swap_fin_inj. apply pmap_swap_fin_surj.
-Qed.
-
-Lemma pmap_swap_surj i j :
-  Surj eq (pmap_apply (pmap_swap i j)).
-Proof.
-apply pmap_apply_surj, pmap_swap_fin_surj.
-Qed.
+Section Compose.
 
 Lemma contra {P Q : Prop} :
   (P -> Q) -> ¬ Q -> ¬ P.
@@ -146,12 +147,12 @@ Proof.
 auto.
 Qed.
 
-Lemma pmap_compose_inj (m1 m2 : Pmap positive) :
+Lemma apply_pmap_compose_inj m1 m2 :
   Inj eq eq (pmap_apply m1) ->
   Inj eq eq (pmap_apply m2) ->
   Inj eq eq (pmap_apply (pmap_compose m1 m2)).
 Proof.
-intros H1 H2 x1 x2; repeat unfold pmap_apply, pmap_compose in *.
+repeat unfold pmap_apply, pmap_compose; intros H1 H2 x1 x2.
 rewrite ?lookup_merge, ?lookup_fmap; intros H3.
 destruct (decide (x1 = x2)) as [H4|H4]; [done|exfalso].
 assert (H5 := contra (H1 _ _) H4); cbn in *;
@@ -160,65 +161,81 @@ assert (H6 := contra (H2 _ _) H5); cbn in *;
 repeat destruct (m2 !! _); done.
 Qed.
 
-Lemma pmap_compose_surj (m1 m2 : Pmap positive) :
+Lemma apply_pmap_compose_surj m1 m2 :
   Surj eq (pmap_apply m1) ->
   Surj eq (pmap_apply m2) ->
   Surj eq (pmap_apply (pmap_compose m1 m2)).
 Proof.
-intros H1 H2 z; destruct (H2 z) as [y Hy], (H1 y) as [x Hx]; exists x.
-clear H1 H2; unfold pmap_apply, pmap_compose in *.
+repeat unfold pmap_apply, pmap_compose; intros H1 H2 z.
+destruct (H2 z) as [y Hy], (H1 y) as [x Hx]; exists x.
 rewrite lookup_merge, lookup_fmap; simplify_option_eq.
-destruct (m1 !! x) as [y|]; cbn; unfold pmap_apply.
+destruct (m1 !! x) as [y|]; cbn.
 destruct (m2 !! x), (m2 !! y); done.
 destruct (m2 !! x); done.
 Qed.
 
+Lemma pmap_compose_inj (m1 m2 : Pmap positive) :
+  FinInj m1 -> FinSurj m1 ->
+  FinInj m2 -> FinSurj m2 ->
+  FinInj (pmap_compose m1 m2).
+Proof.
+intros; apply finj_if_inj, apply_pmap_compose_inj;
+apply inj_if_finj_fsurj; done.
+Qed.
+
+Lemma pmap_compose_surj m1 m2 :
+  FinSurj m1 -> FinSurj m2 -> FinSurj (pmap_compose m1 m2).
+Proof.
+intros; apply fsurj_iff_surj, apply_pmap_compose_surj;
+apply fsurj_iff_surj; done.
+Qed.
+
+End Compose.
+
 Section Invert.
 
-Local Ltac simpl_elem_of :=
-  repeat match goal with
-  | H : (?x, ?y) ∈ ?f <$> ?l |- _ =>
-    let H1 := fresh H in
-    apply elem_of_list_fmap in H as ([] & H1 & H);
-    injection H1; clear H1; intros <- <-
-  | H : _ ∈ map_to_list _ |- _ =>
-    apply elem_of_map_to_list in H
-  end.
-
-Lemma pmap_invert_spec m x :
-  Inj eq eq (pmap_apply m) ->
-  Surj eq (pmap_apply m) ->
-  pmap_apply (pmap_invert m) (pmap_apply m x) = x.
+Global Instance prod_swap_inj {X} :
+  Inj eq eq (@prod_swap X).
 Proof.
-intros inj surj; unfold pmap_apply, pmap_invert.
-destruct (list_to_map _ !! _) as [x'|] eqn:Hx'; cbn in *.
-- apply elem_of_list_to_map in Hx'. simpl_elem_of.
-  destruct (m !! x) as [x''|] eqn:Hx; cbn in *. admit.
-  destruct (surj x) as [y]; unfold pmap_apply in H. admit.
-  apply NoDup_fmap_fst; intros. simpl_elem_of. admit.
-  apply NoDup_fmap. admit. admit.
-- apply not_elem_of_list_to_map in Hx'.
-  destruct (m !! x) as [y|] eqn:Hy; cbn in *; [exfalso|done].
-  apply Hx', elem_of_list_fmap; exists (y, x); split; [done|].
-  apply elem_of_list_fmap; exists (x, y); split; [done|].
-  apply elem_of_map_to_list; done.
-Admitted.
+intros [] []; cbn; congruence.
+Qed.
+
+Lemma NoDup_fst_prod_swap_map_to_list (m : Pmap positive) :
+  FinInj m -> NoDup (prod_swap <$> map_to_list m).*1.
+Proof.
+intros inj; apply NoDup_fmap_fst; intros. simpl_elem_of; simpl_inj; done.
+apply NoDup_fmap. apply prod_swap_inj. apply NoDup_map_to_list.
+Qed.
+
+Lemma pmap_invert_spec m x y :
+  FinInj m -> m !! x = Some y -> pmap_invert m !! y = Some x.
+Proof.
+unfold pmap_invert; intros inj Hx; apply elem_of_list_to_map.
+apply NoDup_fst_prod_swap_map_to_list; done.
+apply elem_of_list_fmap; exists (x, y); repeat split.
+apply elem_of_map_to_list; done.
+Qed.
+
+Lemma pmap_invert_spec_inv m x y :
+  FinInj m -> pmap_invert m !! y = Some x -> m !! x = Some y.
+Proof.
+unfold pmap_invert; intros inj Hy; apply elem_of_list_to_map in Hy.
+simpl_elem_of; done. apply NoDup_fst_prod_swap_map_to_list; done.
+Qed.
 
 Lemma pmap_invert_inj m :
-  Inj eq eq (pmap_apply m) ->
-  Surj eq (pmap_apply m) ->
-  Inj eq eq (pmap_apply (pmap_invert m)).
+  FinInj m -> FinInj (pmap_invert m).
 Proof.
-intros inj surj x1 x2; destruct (surj x1) as [y1 <-], (surj x2) as [y2 <-].
-rewrite ?pmap_invert_spec. congruence. all: done.
+intros inj x1 x2 y H1 H2.
+apply pmap_invert_spec_inv in H1, H2; [congruence|done|done].
 Qed.
 
 Lemma pmap_invert_surj m :
-  Inj eq eq (pmap_apply m) ->
-  Surj eq (pmap_apply m) ->
-  Surj eq (pmap_apply (pmap_invert m)).
+  FinInj m -> FinSurj m -> FinSurj (pmap_invert m).
 Proof.
-intros inj surj y; exists (pmap_apply m y).
+intros inj surj y z Hy; apply pmap_invert_spec_inv in Hy; [|done].
+assert (co_surj : FinCoSurj m) by now apply fcosurj_if_finj_fsurj.
+apply co_surj in Hy as [x Hx]; exists x.
 apply pmap_invert_spec; done.
 Qed.
 
@@ -228,8 +245,8 @@ End Bijection.
 
 Inductive perm := Perm {
   perm_car  : Pmap positive;
-  perm_inj  : Inj eq eq (pmap_apply perm_car);
-  perm_surj : Surj eq (pmap_apply perm_car);
+  perm_inj  : FinInj perm_car;
+  perm_surj : FinSurj perm_car;
 }.
 
 Global Instance : FinMapToList positive positive perm :=
@@ -244,16 +261,16 @@ Global Instance : Empty perm :=
 Definition perm_swap (i j : positive) :=
   Perm _ (pmap_swap_inj i j) (pmap_swap_surj i j).
 
-Definition perm_compose (π τ : perm) :=
-  let (π_m, π_inj, π_surj) := π in
-  let (τ_m, τ_inj, τ_surj) := τ in Perm _
-    (pmap_compose_inj _ _ π_inj τ_inj)
-    (pmap_compose_surj _ _ π_surj τ_surj).
+Definition perm_compose (τ π : perm) :=
+  let (τ_m, τ_inj, τ_surj) := τ in
+  let (π_m, π_inj, π_surj) := π in Perm _
+    (pmap_compose_inj _ _ τ_inj τ_surj π_inj π_surj)
+    (pmap_compose_surj _ _ τ_surj π_surj).
 
 Definition perm_invert (π : perm) :=
   let (π_m, π_inj, π_surj) := π in Perm _
-    (pmap_invert_inj π_m π_inj π_surj)
-    (pmap_invert_surj π_m π_inj π_surj).
+    (pmap_invert_inj _ π_inj)
+    (pmap_invert_surj _ π_inj π_surj).
 
 Notation "⟨ i ; j ⟩" := (perm_swap i j) (format "⟨ i ;  j ⟩").
 Notation "π ⋅ τ" := (perm_compose τ π) (at level 15).
