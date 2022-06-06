@@ -283,7 +283,7 @@ Global Instance : Empty perm :=
 Definition perm_swap (i j : positive) :=
   Perm _ (pmap_swap_inj i j) (pmap_swap_surj i j).
 
-Definition perm_compose (τ π : perm) :=
+Definition perm_compose (π τ : perm) :=
   let (τ_m, τ_inj, τ_surj) := τ in
   let (π_m, π_inj, π_surj) := π in Perm _
     (pmap_compose_inj _ _ τ_inj τ_surj π_inj π_surj)
@@ -295,7 +295,7 @@ Definition perm_invert (π : perm) :=
     (pmap_invert_surj _ π_inj π_surj).
 
 Notation "⟨ i ; j ⟩" := (perm_swap i j) (format "⟨ i ;  j ⟩").
-Notation "π ⋅ τ" := (perm_compose τ π) (at level 15).
+Notation "π ⋅ τ" := (perm_compose π τ) (at level 15).
 Notation "(⋅)" := perm_compose (only parsing).
 Notation inv := perm_invert.
 
@@ -341,11 +341,11 @@ split; congruence. etrans; auto; f_equal; done.
 all: unfold lookup_total, perm_lookup, pmap_apply.
 all: destruct x as [m inj surj]; cbn.
 - destruct (_ !! i) eqn:H; cbn.
-  apply pmap_invert_Some_inv in H as ->; done.
-  apply pmap_invert_None_inv in H as ->; done.
-- destruct (_ !! i) eqn:H; cbn.
   apply pmap_invert_Some in H as ->; done.
   apply pmap_invert_None in H as ->; done.
+- destruct (_ !! i) eqn:H; cbn.
+  apply pmap_invert_Some_inv in H as ->; done.
+  apply pmap_invert_None_inv in H as ->; done.
 Qed.
 
 End Group.

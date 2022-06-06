@@ -17,22 +17,52 @@ Definition Sound (orb : orbit) :=
 Definition Complete (orb : orbit) :=
   ∀ π, Generates gen π -> is_Some (orb !! (π !!! k)).
 
-Definition ImageBound (π : perm) (n : positive) :=
+Definition Value_Bound (π : perm) (n : positive) :=
   ∀ i, π !!! i ≠ i -> π !!! i ≤ n.
 
 Section Soundness.
 
-Lemma build_sound n :
-  Sound (build n).1.
+Lemma foldl_invariant {A B} (P : B -> Prop) (f : B -> A -> B) l :
+  (∀ a b, a ∈ l -> P b -> P (f b a)) -> ∀ b0, P b0 -> P (foldl f b0 l).
 Proof.
-Admitted.
+intros Hf; induction l; intros b0 H0; cbn. done.
+apply IHl; intros; apply Hf; auto; apply elem_of_cons; tauto.
+Qed.
+
+Definition Sound_State (s : state) :=
+  Sound s.1 ∧ ∀ i π, (i, π) ∈ s.2 -> s.1 !! i = Some π.
+
+Theorem build_sound n :
+  Sound_State (build n).
+Proof.
+unfold build; apply Pos.iter_invariant; clear.
+- intros [orb cur]; cbn; intros Horb.
+  apply foldl_invariant. intros [i π] [orb' cur'] H1 H2; cbn.
+  apply foldl_invariant. intros σ [orb'' cur''] H3 H4; cbn.
+  3: firstorder; list_simplifier; decompose_elem_of_list.
+  2: firstorder. destruct (_ !! _) eqn:Hi; cbn. tauto.
+  split; intros j τ; cbn; intros Hj.
+  + apply lookup_insert_Some in Hj as [[<- <-]|[]]; [|firstorder].
+    apply Horb, Horb in H1 as [Hπ Hk]; split.
+    apply generates_compose. done. apply generates_generator; done.
+    rewrite lookup_compose; congruence.
+  + apply elem_of_cons in Hj as [].
+    injection H; intros <- <-; apply lookup_insert.
+    apply H4 in H; cbn in H; etrans; [apply lookup_insert_ne|].
+    congruence. done.
+- split; intros i π; simpl; intros.
+  + apply lookup_singleton_Some in H as [-> <-]; split.
+    apply generates_e. done.
+  + apply elem_of_list_singleton in H; injection H; intros -> ->.
+    apply lookup_insert.
+Qed.
 
 End Soundness.
 
 Section Completeness.
 
 Variable n : positive.
-Hypothesis exhaustive : ∀ π, π ∈ gen -> ImageBound π n.
+Hypothesis exhaustive : ∀ π, π ∈ gen -> Value_Bound π n.
 
 Lemma build_complete :
   Complete (build n).1.
