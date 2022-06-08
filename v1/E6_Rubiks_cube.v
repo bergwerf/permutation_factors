@@ -80,9 +80,6 @@ Definition orbits := [
   (54, 06%nat); (53, 02%nat)
 ].
 
-(* The order of the Rubik's cube group is 43252003274489856000. *)
-Compute fold_left Pos.mul (map Pos.of_nat (map snd orbits)) 1.
-
 (***
 :: Number of configurations of Rubik's cube ::
 
@@ -91,8 +88,8 @@ rotations of the cube. Therefore the total number of configurations is equal to
 the order of the permutation group we just defined. Using a theorem from group
 theory we can compute this order as the product of all orbit lengths.
 *)
-Definition ord := fold_left Pos.mul (map (λ kn, Pos.of_nat (snd kn)) orbits) 1.
-Eval lazy in ord.
+Definition ord := fold_left Pos.mul (map Pos.of_nat (map snd orbits)) 1.
+Compute ord.
 
 (* Find a strong generating set. *)
 Definition table := SGS.initialize orbits.

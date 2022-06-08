@@ -15,3 +15,6 @@ C2_Sims_filter.v
 C3_subgroup_chain.v
 
 D1_word_search.v
+
+E1_Cruzzle.v
+E6_Rubiks_cube.v
