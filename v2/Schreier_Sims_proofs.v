@@ -2,6 +2,8 @@
 
 From permlib Require Import perm order Schreier_Sims.
 
+Arguments singletonM : simpl never.
+
 Module Schreier.
 Import Schreier.
 Section Vector.
@@ -50,7 +52,7 @@ unfold build; apply Pos.iter_invariant; clear.
     injection H; intros <- <-; apply lookup_insert.
     apply H4 in H; cbn in H; etrans; [apply lookup_insert_ne|].
     congruence. done.
-- split; intros i π; simpl; intros.
+- split; intros i π; cbn; intros.
   + apply lookup_singleton_Some in H as [-> <-]; split.
     apply generates_e. done.
   + apply elem_of_list_singleton in H; injection H; intros -> ->.

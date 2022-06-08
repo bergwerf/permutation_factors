@@ -2,6 +2,16 @@
 
 From permlib Require Import perm.
 
+Arguments reverse _ : simpl never.
+
+Local Ltac simpl_elem_of :=
+  repeat match goal with
+  | H : ?x ∈ ?f <$> ?l |- _ =>
+    let y := fresh x in
+    apply elem_of_list_fmap in H as (y & -> & H);
+    rename y into x
+  end.
+
 Section Generating_set.
 
 Variable gen : list perm.
@@ -39,6 +49,46 @@ intros [w_τ [H1 H2]] [w_π [H3 H4]]; exists (w_π ++ w_τ); split.
 - intros a Ha; apply elem_of_app in Ha; firstorder.
 - rewrite H2, H4; clear; induction w_π; cbn; intros.
   apply (left_id ∅ (⋅)). rewrite <-(assoc (⋅)), IHw_π; done.
+Qed.
+
+Lemma convert_word σs w' :
+  (∀ σ', σ' ∈ w' -> ∃ σ, σ ∈ σs ∧ σ ≡ σ') ->
+  ∃ w, w ⊆ σs ∧ foldr (⋅) ∅ w ≡ foldr (⋅) ∅ w'.
+Proof.
+induction w'; cbn; intros H.
+- exists []; cbn; split. apply list_subseteq_nil. done.
+- destruct (H a) as [σ []]; [constructor|].
+  destruct IHw' as [w []]; [set_solver|exists (σ :: w)].
+  split; [set_solver|cbn]; solve_proper.
+Qed.
+
+Lemma foldr_ext_1 τ π w :
+  τ ≡ π -> foldr (⋅) τ w ≡ foldr (⋅) π w.
+Proof.
+induction w; cbn; intros.
+done. rewrite IHw; done.
+Qed.
+
+Lemma foldr_propagate `{Group X f i e} (x y : X) l :
+  foldr f (f x y) l ≡ f (foldr f x l) y.
+Proof.
+induction l; cbn. done.
+rewrite IHl, (assoc f); done.
+Qed.
+
+Lemma generates_inv π :
+  Generates π -> Generates (inv π).
+Proof.
+pose (σs := gen ++ (inv <$> gen)); intros (w & H1 & H2).
+destruct (convert_word σs (inv <$> reverse w)) as [w' []]; unfold σs in *.
+- intros; simpl_elem_of; apply (elem_of_reverse _ w), H1 in H.
+  decompose_elem_of_list; simpl_elem_of.
+  + exists (inv σ'); split; [set_solver|done].
+  + exists σ'; split; [set_solver|symmetry; apply inv_inv].
+- exists w'; split; [done|]; rewrite H2; etrans; [|done]; clear.
+  induction w; cbn; [done|]; rewrite inv_compose, IHw.
+  rewrite reverse_cons, fmap_app, foldr_app; etrans; [|eapply foldr_ext_1]; cbn.
+  rewrite foldr_propagate; done. rewrite (left_id ∅ _), (right_id ∅ _); done.
 Qed.
 
 End Generating_set.

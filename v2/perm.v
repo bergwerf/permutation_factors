@@ -320,6 +320,29 @@ Class Group (X : Type) `{_equiv : Equiv X}
   right_inv x       : f x (inv x) ≡ e;
 }.
 
+Global Instance inv_proper `{Group X f i e} :
+  Proper ((≡) ==> (≡)) i.
+Proof.
+intros x y Hxy; rewrite <-(right_id e f), <-(right_inv y), <-Hxy at 1.
+rewrite (assoc f), left_inv, (left_id e f); done.
+Qed.
+
+Lemma inv_inv `{Group X f i e} (x : X) :
+  i (i x) ≡ x.
+Proof.
+rewrite <-(right_id e f), <-(left_inv x).
+rewrite (assoc f), left_inv, (left_id e f); done.
+Qed.
+
+Lemma inv_compose `{Group X f i e} (x y : X) :
+  i (f x y) ≡ f (i y) (i x).
+Proof.
+rewrite <-(right_id e f).
+assert (R : e ≡ f (f x y) (f (i y) (i x))).
+rewrite <-(assoc f), (assoc f y), right_inv, (left_id e f), right_inv; done.
+rewrite R, (assoc f), left_inv, (left_id e f); done.
+Qed.
+
 Lemma lookup_compose π τ i :
   π ⋅ τ !!! i = π !!! (τ !!! i).
 Proof.
@@ -332,7 +355,6 @@ Qed.
 
 Global Instance : Equiv perm :=
   λ τ π, ∀ i, τ !!! i = π !!! i.
-
 Global Instance :
   Group _ (⋅) inv ∅.
 Proof.
@@ -348,7 +370,16 @@ all: destruct x as [m inj surj]; cbn.
   apply pmap_invert_None_inv in H as ->; done.
 Qed.
 
+Lemma lookup_inv π i j :
+  inv π !!! i = j -> π !!! j = i.
+Proof.
+Admitted.
+
 End Group.
+
+Arguments perm_swap _ _ : simpl never.
+Arguments perm_compose _ _ : simpl never.
+Arguments perm_invert _ : simpl never.
 
 Section Format.
 
