@@ -2,6 +2,8 @@
 
 From permlib Require Import perm.
 
+Notation comp := (foldr (⋅) ∅).
+
 Arguments reverse _ : simpl never.
 
 Local Ltac simpl_elem_of :=
@@ -17,7 +19,7 @@ Section Generating_set.
 Variable gen : list perm.
 
 Definition Generates (π : perm) :=
-  ∃ w, w ⊆ gen ++ (inv <$> gen) ∧ π ≡ foldr (⋅) ∅ w.
+  ∃ w, w ⊆ gen ++ (inv <$> gen) ∧ π ≡ comp w.
 
 Record Group_Order (ord : positive) := Group_Enumeration {
   enum : positive -> perm;
@@ -67,7 +69,7 @@ Qed.
 
 Lemma convert_word σs w' :
   (∀ σ', σ' ∈ w' -> ∃ σ, σ ∈ σs ∧ σ ≡ σ') ->
-  ∃ w, w ⊆ σs ∧ foldr (⋅) ∅ w ≡ foldr (⋅) ∅ w'.
+  ∃ w, w ⊆ σs ∧ comp w ≡ comp w'.
 Proof.
 induction w'; cbn; intros H.
 - exists []; cbn; split. apply list_subseteq_nil. done.

@@ -11,6 +11,7 @@ Section Vector.
 Variable k : positive.
 Variable gen : list perm.
 Notation build := (build gen k).
+Notation build_step := (build_step gen).
 Notation generators := (generators gen k).
 
 Definition Sound (orb : orbit) :=
@@ -22,7 +23,18 @@ Definition Complete (orb : orbit) :=
 Definition Value_Bound (π : perm) (n : positive) :=
   ∀ i, π !!! i ≠ i -> π !!! i ≤ n.
 
+Implicit Types s : state.
+Implicit Types orb : orbit.
+Implicit Types cur : list (positive * perm).
+Implicit Types p : positive * perm.
+
 Section Soundness.
+
+Lemma iterate_invariant {X} (P : X -> Prop) n f x :
+  P x -> (∀ y, P y -> P (f y)) -> P (iterate n f x).
+Proof.
+revert x; induction n; firstorder.
+Qed.
 
 Lemma foldl_invariant {A B} (P : B -> Prop) (f : B -> A -> B) l :
   (∀ a b, a ∈ l -> P b -> P (f b a)) -> ∀ b0, P b0 -> P (foldl f b0 l).
@@ -37,7 +49,12 @@ Definition Sound_State (s : state) :=
 Theorem build_sound n :
   Sound_State (build n).
 Proof.
-unfold build; apply Pos.iter_invariant; clear.
+unfold build; apply iterate_invariant.
+- split; intros i π; cbn; intros.
+  + apply lookup_singleton_Some in H as [-> <-]; split.
+    apply generates_e. done.
+  + apply elem_of_list_singleton in H; injection H; intros -> ->.
+    apply lookup_insert.
 - intros [orb cur]; cbn; intros Horb.
   apply foldl_invariant. intros [i π] [orb' cur'] H1 H2; cbn.
   apply foldl_invariant. intros σ [orb'' cur''] H3 H4; cbn.
@@ -52,23 +69,31 @@ unfold build; apply Pos.iter_invariant; clear.
     injection H; intros <- <-; apply lookup_insert.
     apply H4 in H; cbn in H; etrans; [apply lookup_insert_ne|].
     congruence. done.
-- split; intros i π; cbn; intros.
-  + apply lookup_singleton_Some in H as [-> <-]; split.
-    apply generates_e. done.
-  + apply elem_of_list_singleton in H; injection H; intros -> ->.
-    apply lookup_insert.
 Qed.
 
 End Soundness.
 
 Section Completeness.
 
+Lemma build_step_complete w s :
+  w ⊆ gen ++ (inv <$> gen) ->
+  let (orb, _) := iterate (length w) build_step s in
+  is_Some (orb !! (comp w !!! k)).
+Proof.
+induction w; intros; cbn.
+(* We have to determine the right pre-condition for the list of current indices.
+Each index from which new indices are reachable must be present. *)
+Admitted.
+
 Variable n : positive.
 Hypothesis exhaustive : ∀ π, π ∈ gen -> Value_Bound π n.
 
 Lemma build_complete :
-  Complete (build n).1.
+  Complete (build (Pos.to_nat n)).1.
 Proof.
+intros _ [w [? ->]].
+(* We need the Pigeon-Hole-Principle to show that a prefix of w with length at
+most n has the same value at k, so we can apply build_step_complete. *)
 Admitted.
 
 End Completeness.

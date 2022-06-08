@@ -3,7 +3,12 @@
 From stdpp Require Import gmap.
 From permlib Require Import perm.
 
-Definition values `{FinMapToList K A M} (m : M) : list A := (map_to_list m).*2.
+Definition values `{FinMapToList K A M} (m : M) : list A :=
+  (map_to_list m).*2.
+
+(* This has nicer unfolding behavior than Nat.iter. *)
+Fixpoint iterate {X} (n : nat) (f : X -> X) (x : X) :=
+  match n with O => x | S m => iterate m f (f x) end.
 
 Module Schreier.
 Section Vector.
@@ -16,10 +21,13 @@ Definition extend (i : positive) (π : perm) (s : state) (σ : perm) : state :=
   let (orb, cur) := s in let j := σ !!! i in if orb !! j then (orb, cur) else
   let τ := σ⋅π in (<[j:=τ]> orb, (j, τ) :: cur).
 
+(* Extend the orbit from previously discovered indices. *)
+Definition build_step gen (s : state) :=
+  foldl (λ s p, foldl (extend p.1 p.2) s gen) (s.1, []) s.2.
+
 (* Build the orbit of k using size bound n. *)
 Definition build gen k n : state :=
-  Pos.iter (λ s, foldl (λ s p, foldl (extend p.1 p.2) s gen) (s.1, []) s.2)
-    ({[k:=∅]}, [(k, ∅)]) n.
+  iterate n (build_step gen) ({[k:=∅]}, [(k, ∅)]).
 
 (* The subgroup generators according to Schreier's Lemma. *)
 Definition generators gen k (orb : orbit) : list perm :=
@@ -67,7 +75,7 @@ Definition chain := list (list perm * positive * Schreier.orbit).
 Definition stabilize range (s : chain * list perm) k : chain * list perm :=
   let (ch, gen) := s in
   if decide (gen = []) then ([], []) else
-  let orb  := Schreier.build gen k range in
+  let orb  := Schreier.build gen k (Pos.to_nat range) in
   let gen1 := Schreier.generators gen k orb.1 in
   let gen2 := values (Sims.filter (Pos.to_nat range) gen1) in
   (ch ++ [(gen, k, orb.1)], gen2).
