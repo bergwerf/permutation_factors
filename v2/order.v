@@ -51,6 +51,20 @@ intros [w_τ [H1 H2]] [w_π [H3 H4]]; exists (w_π ++ w_τ); split.
   apply (left_id ∅ (⋅)). rewrite <-(assoc (⋅)), IHw_π; done.
 Qed.
 
+Lemma foldr_ext_1 `{Group X f i e} (x y : X) l :
+  x ≡ y -> foldr f x l ≡ foldr f y l.
+Proof.
+induction l; cbn; intros.
+done. rewrite IHl; done.
+Qed.
+
+Lemma foldr_propagate `{Group X f i e} (x y : X) l :
+  foldr f (f x y) l ≡ f (foldr f x l) y.
+Proof.
+induction l; cbn. done.
+rewrite IHl, (assoc f); done.
+Qed.
+
 Lemma convert_word σs w' :
   (∀ σ', σ' ∈ w' -> ∃ σ, σ ∈ σs ∧ σ ≡ σ') ->
   ∃ w, w ⊆ σs ∧ foldr (⋅) ∅ w ≡ foldr (⋅) ∅ w'.
@@ -60,20 +74,6 @@ induction w'; cbn; intros H.
 - destruct (H a) as [σ []]; [constructor|].
   destruct IHw' as [w []]; [set_solver|exists (σ :: w)].
   split; [set_solver|cbn]; solve_proper.
-Qed.
-
-Lemma foldr_ext_1 τ π w :
-  τ ≡ π -> foldr (⋅) τ w ≡ foldr (⋅) π w.
-Proof.
-induction w; cbn; intros.
-done. rewrite IHw; done.
-Qed.
-
-Lemma foldr_propagate `{Group X f i e} (x y : X) l :
-  foldr f (f x y) l ≡ f (foldr f x l) y.
-Proof.
-induction l; cbn. done.
-rewrite IHl, (assoc f); done.
 Qed.
 
 Lemma generates_inv π :

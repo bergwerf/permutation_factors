@@ -370,11 +370,6 @@ all: destruct x as [m inj surj]; cbn.
   apply pmap_invert_None_inv in H as ->; done.
 Qed.
 
-Lemma lookup_inv π i j :
-  inv π !!! i = j -> π !!! j = i.
-Proof.
-Admitted.
-
 End Group.
 
 Arguments perm_swap _ _ : simpl never.
