@@ -355,6 +355,7 @@ Qed.
 
 Global Instance : Equiv perm :=
   λ τ π, ∀ i, τ !!! i = π !!! i.
+
 Global Instance :
   Group _ (⋅) inv ∅.
 Proof.

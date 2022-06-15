@@ -76,7 +76,7 @@ End Soundness.
 Section Completeness.
 
 Lemma build_step_complete w s :
-  w ⊆ gen ++ (inv <$> gen) ->
+  w ⊆ gen ->
   let (orb, _) := iterate (length w) build_step s in
   is_Some (orb !! (comp w !!! k)).
 Proof.
