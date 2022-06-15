@@ -3,9 +3,6 @@
 From stdpp Require Import gmap.
 From permlib Require Import perm.
 
-Definition values `{FinMapToList K A M} (m : M) : list A :=
-  (map_to_list m).*2.
-
 (* This has nicer unfolding behavior than Nat.iter. *)
 Fixpoint iterate {X} (n : nat) (f : X -> X) (x : X) :=
   match n with O => x | S m => iterate m f (f x) end.

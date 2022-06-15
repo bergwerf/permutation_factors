@@ -7,6 +7,12 @@ From stdpp Require Export base numbers option list pmap.
 Global Open Scope positive_scope.
 Global Open Scope list_scope.
 
+Definition keys `{FinMapToList K A M} (m : M) : list K :=
+  (map_to_list m).*1.
+
+Definition values `{FinMapToList K A M} (m : M) : list A :=
+  (map_to_list m).*2.
+
 Definition prod_swap {X} (p : X * X) :=
   match p with (x1, x2) => (x2, x1) end.
 

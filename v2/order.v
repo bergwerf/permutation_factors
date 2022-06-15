@@ -18,15 +18,21 @@ Local Ltac simpl_elem_of :=
 Theorem perm_order (π : perm) :
   ∃ k, comp (repeat π (S k)) ≡ ∅.
 Proof.
-pose (dom (τ : perm) := (map_to_list τ).*1);
-pose (r := permutations (dom π));
+pose (r := permutations (map_to_list π));
 pose (n := S (length r));
-pose (s := dom ∘ comp ∘ repeat π <$> seq 0 n);
-destruct (list_pigeonhole s r) as (i & j & xs & H1 & H2 & H3).
-- unfold s, r; intros xs H; apply elem_of_list_fmap in H as (k & -> & _).
-  unfold compose; apply permutations_Permutation. admit.
+pose (s := map_to_list ∘ comp ∘ repeat π <$> seq 1 n);
+destruct (list_pigeonhole s r) as (i & j & ps & H1 & H2 & H3).
+- unfold s, r; intros xs H; apply elem_of_list_fmap in H as (k & -> & H).
+  apply elem_of_seq in H; destruct k; [lia|clear].
+  unfold compose; apply permutations_Permutation.
+  admit.
 - unfold s, n, r; rewrite fmap_length, seq_length; auto.
 - exists (j - i)%nat.
+  unfold s, compose in H2, H3;
+  apply list_lookup_fmap_inv in H2 as (i' & -> & Hi');
+  apply list_lookup_fmap_inv in H3 as (j' & H2 & Hj');
+  apply lookup_seq in Hi' as [-> _];
+  apply lookup_seq in Hj' as [-> _].
 Admitted.
 
 Section Generating_set.
