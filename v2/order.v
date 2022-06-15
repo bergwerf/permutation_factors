@@ -16,8 +16,17 @@ Local Ltac simpl_elem_of :=
   end.
 
 Theorem perm_order (π : perm) :
-  ∃ n, comp (repeat π (S n)) ≡ ∅.
+  ∃ k, comp (repeat π (S k)) ≡ ∅.
 Proof.
+pose (dom (τ : perm) := (map_to_list τ).*1);
+pose (r := permutations (dom π));
+pose (n := S (length r));
+pose (s := dom ∘ comp ∘ repeat π <$> seq 0 n);
+destruct (list_pigeonhole s r) as (i & j & xs & H1 & H2 & H3).
+- unfold s, r; intros xs H; apply elem_of_list_fmap in H as (k & -> & _).
+  unfold compose; apply permutations_Permutation. admit.
+- unfold s, n, r; rewrite fmap_length, seq_length; auto.
+- exists (j - i)%nat.
 Admitted.
 
 Section Generating_set.
@@ -65,14 +74,14 @@ Qed.
 Lemma generates_inv π :
   Generates π -> Generates (inv π).
 Proof.
-intros [w [H1 H2]]; destruct (perm_order π) as [n H3]; cbn in H3.
-exists (concat (repeat w n)); split.
-- clear H2 H3; induction n; cbn; set_solver.
-- assert(H4 : inv π ≡ comp (repeat π n)).
+intros [w [H1 H2]]; destruct (perm_order π) as [k H3]; cbn in H3.
+exists (concat (repeat w k)); split.
+- clear H2 H3; induction k; cbn; set_solver.
+- assert (H4 : inv π ≡ comp (repeat π k)).
   + symmetry; rewrite <-(left_id ∅ (⋅)), <-(left_inv π) at 1.
     rewrite <-(assoc (⋅)), H3, (right_id ∅ (⋅)); done.
-  + rewrite H4; clear H1 H3 H4; induction n; cbn in *. done.
-    rewrite IHn; rewrite H2, comp_app; done.
+  + rewrite H4; clear H1 H3 H4; induction k; cbn in *. done.
+    rewrite IHk; rewrite H2, comp_app; done.
 Qed.
 
 End Generating_set.
