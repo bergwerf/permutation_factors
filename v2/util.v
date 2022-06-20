@@ -2,6 +2,9 @@
 
 From stdpp Require Export base numbers option list fin_maps.
 
+Definition prod_swap {A} (p : A * A) :=
+  match p with (x1, x2) => (x2, x1) end.
+
 Definition keys `{FinMapToList K A M} (m : M) : list K :=
   (map_to_list m).*1.
   
@@ -32,6 +35,12 @@ Ltac simpl_elem_of :=
     rename y into x
   end.
 
+Global Instance prod_swap_inj {X} :
+  Inj eq eq (@prod_swap X).
+Proof.
+intros [] []; cbn; congruence.
+Qed.
+
 Lemma NoDup_keys `{FinMap K M} {A} (m : M A) :
   NoDup (keys m).
 Proof.
@@ -42,8 +51,17 @@ Lemma elem_of_keys `{FinMap K M} {A} (m : M A) (k : K) :
   k ∈ keys m ↔ is_Some (m !! k).
 Proof.
 unfold keys; split; intros Hk.
-simpl_elem_of; intuition. destruct Hk as [a Ha].
-apply elem_of_list_fmap; exists (k, a); split; [done|].
+simpl_elem_of; intuition. destruct Hk as [x Hx].
+apply elem_of_list_fmap; exists (k, x); split; [done|].
+apply elem_of_map_to_list; done.
+Qed.
+
+Lemma elem_of_values `{FinMap K M} {A} (m : M A) (x : A) :
+  x ∈ values m ↔ ∃ k, m !! k = Some x.
+Proof.
+unfold values; split; intros Hx.
+simpl_elem_of; exists k; done. destruct Hx as [k Hk].
+apply elem_of_list_fmap; exists (k, x); split; [done|].
 apply elem_of_map_to_list; done.
 Qed.
 
