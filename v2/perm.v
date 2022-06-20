@@ -362,12 +362,15 @@ Qed.
 Lemma group_inv_cancel `{Group X f i e} (x y : X) :
   i x ≡ i y -> x ≡ y.
 Proof.
-Admitted.
+intros R; rewrite <-(group_inv_inv x), <-(group_inv_inv y), R; done.
+Qed.
 
 Lemma group_compose_cancel `{Group X f i e} (x y z : X) :
-  f x z  ≡ f y z -> x ≡ y.
+  f x z ≡ f y z -> x ≡ y.
 Proof.
-Admitted.
+intros R; rewrite <-(right_id e f x), <-(right_id e f y).
+rewrite <-?(right_inv z), ?(assoc f), R; done.
+Qed.
 
 Lemma lookup_perm_compose π τ i :
   π ⋅ τ !!! i = π !!! (τ !!! i).
