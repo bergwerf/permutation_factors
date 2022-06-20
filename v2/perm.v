@@ -116,6 +116,11 @@ eapply inj; done. apply co_surj in H1 as []; congruence.
 apply co_surj in H2 as []; congruence. done.
 Qed.
 
+Lemma inj_surj_Permutation (m : Pmap positive) :
+  FinInj m -> FinSurj m -> keys m ≡ₚ values m.
+Proof.
+Admitted.
+
 End Pmap_Bijection.
 
 Lemma pmap_empty_inj :
@@ -193,6 +198,11 @@ Proof.
 intros; apply fsurj_iff_surj, apply_pmap_compose_surj;
 apply fsurj_iff_surj; done.
 Qed.
+
+Lemma pmap_compose_keys m1 m2 :
+  keys (pmap_compose m1 m2) ≡ₚ list_union (keys m2) (keys m1).
+Proof.
+Admitted.
 
 End Compose.
 
@@ -326,21 +336,21 @@ Class Group (X : Type) `{_equiv : Equiv X}
   right_inv x       : f x (inv x) ≡ e;
 }.
 
-Global Instance inv_proper `{Group X f i e} :
+Global Instance group_inv_proper `{Group X f i e} :
   Proper ((≡) ==> (≡)) i.
 Proof.
 intros x y Hxy; rewrite <-(right_id e f), <-(right_inv y), <-Hxy at 1.
 rewrite (assoc f), left_inv, (left_id e f); done.
 Qed.
 
-Lemma inv_inv `{Group X f i e} (x : X) :
+Lemma group_inv_inv `{Group X f i e} (x : X) :
   i (i x) ≡ x.
 Proof.
 rewrite <-(right_id e f), <-(left_inv x).
 rewrite (assoc f), left_inv, (left_id e f); done.
 Qed.
 
-Lemma inv_compose `{Group X f i e} (x y : X) :
+Lemma group_inv_compose `{Group X f i e} (x y : X) :
   i (f x y) ≡ f (i y) (i x).
 Proof.
 rewrite <-(right_id e f).
@@ -349,7 +359,17 @@ rewrite <-(assoc f), (assoc f y), right_inv, (left_id e f), right_inv; done.
 rewrite R, (assoc f), left_inv, (left_id e f); done.
 Qed.
 
-Lemma lookup_compose π τ i :
+Lemma group_inv_cancel `{Group X f i e} (x y : X) :
+  i x ≡ i y -> x ≡ y.
+Proof.
+Admitted.
+
+Lemma group_compose_cancel `{Group X f i e} (x y z : X) :
+  f x z  ≡ f y z -> x ≡ y.
+Proof.
+Admitted.
+
+Lemma lookup_perm_compose π τ i :
   π ⋅ τ !!! i = π !!! (τ !!! i).
 Proof.
 destruct τ as [τ_m ? ?], π as [π_m ? ?]; unfold lookup_total, perm_lookup; cbn.
@@ -362,10 +382,16 @@ Qed.
 Global Instance : Equiv perm :=
   λ τ π, ∀ i, τ !!! i = π !!! i.
 
+Lemma perm_eq_equiv (π τ : perm) :
+  perm_car π = perm_car τ -> π ≡ τ.
+Proof.
+intros H i; unfold lookup_total, perm_lookup; rewrite H; done.
+Qed.
+
 Global Instance :
   Group _ (⋅) inv ∅.
 Proof.
-split; repeat intros ?; rewrite ?lookup_compose; cbn; try done.
+split; repeat intros ?; rewrite ?lookup_perm_compose; cbn; try done.
 split; congruence. etrans; auto; f_equal; done.
 all: unfold lookup_total, perm_lookup, pmap_apply.
 all: destruct x as [m inj surj]; cbn.
@@ -382,6 +408,30 @@ End Group.
 Arguments perm_swap _ _ : simpl never.
 Arguments perm_compose _ _ : simpl never.
 Arguments perm_invert _ : simpl never.
+
+Section Permutation.
+
+Lemma perm_keys (π : perm) :
+  keys π = keys (perm_car π).
+Proof.
+done.
+Qed.
+
+Lemma perm_Permutation (π : perm) :
+  keys π ≡ₚ values π.
+Proof.
+apply inj_surj_Permutation.
+apply perm_inj. apply perm_surj.
+Qed.
+
+Lemma perm_compose_keys (π τ : perm) :
+  keys (π ⋅ τ) ≡ₚ list_union (keys π) (keys τ).
+Proof.
+rewrite ?perm_keys; destruct τ as [τ_m ? ?], π as [π_m ? ?].
+unfold perm_compose; cbn; apply pmap_compose_keys.
+Qed.
+
+End Permutation.
 
 Section Format.
 

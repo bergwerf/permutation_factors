@@ -5,8 +5,6 @@ From permlib Require Import perm.
 
 Notation comp := (foldr (⋅) ∅).
 
-Arguments reverse _ : simpl never.
-
 Local Ltac simpl_elem_of :=
   repeat match goal with
   | H : ?x ∈ ?f <$> ?l |- _ =>
@@ -15,25 +13,60 @@ Local Ltac simpl_elem_of :=
     rename y into x
   end.
 
+Section Permutation_order.
+
+Lemma list_difference_nil `{dec : EqDecision A} (l k : list A) :
+  l ⊆ k -> list_difference l k = [].
+Proof.
+Admitted.
+
+Lemma list_union_sym `{dec : EqDecision A} (l k : list A) :
+  list_union l k ≡ₚ list_union k l.
+Proof.
+Admitted.
+
+Lemma list_union_cancel `{dec : EqDecision A} (l k : list A) :
+  l ⊆ k -> list_union l k = k.
+Proof.
+intros; unfold list_union; rewrite list_difference_nil; done.
+Qed.
+
+Lemma comp_app w1 w2 :
+  comp (w2 ++ w1) ≡ comp w2 ⋅ comp w1.
+Proof.
+induction w2; cbn; intros; symmetry.
+apply (left_id ∅ (⋅)). rewrite <-(assoc (⋅)), IHw2; done.
+Qed.
+
 Theorem perm_order (π : perm) :
   ∃ k, comp (repeat π (S k)) ≡ ∅.
 Proof.
-pose (r := permutations (map_to_list π));
+pose (r := permutations (values π));
 pose (n := S (length r));
-pose (s := map_to_list ∘ comp ∘ repeat π <$> seq 1 n);
+pose (s := values ∘ comp ∘ repeat π <$> seq 1 n);
 destruct (list_pigeonhole s r) as (i & j & ps & H1 & H2 & H3).
 - unfold s, r; intros xs H; apply elem_of_list_fmap in H as (k & -> & H).
   apply elem_of_seq in H; destruct k; [lia|clear].
   unfold compose; apply permutations_Permutation.
-  admit.
+  induction k; cbn in *.
+  + rewrite <-?perm_Permutation, perm_compose_keys, list_union_sym; done.
+  + rewrite IHk, <-?perm_Permutation, perm_compose_keys with (τ:=_⋅_).
+    rewrite list_union_cancel. done.
+    rewrite perm_compose_keys, list_union_sym; set_solver.
 - unfold s, n, r; rewrite fmap_length, seq_length; auto.
-- exists (j - i)%nat.
+- exists (j - 1 - i)%nat; replace (S (j - 1 - i)) with (j - i)%nat by lia.
   unfold s, compose in H2, H3;
   apply list_lookup_fmap_inv in H2 as (i' & -> & Hi');
   apply list_lookup_fmap_inv in H3 as (j' & H2 & Hj');
   apply lookup_seq in Hi' as [-> _];
   apply lookup_seq in Hj' as [-> _].
+  apply group_compose_cancel with (z:=comp (repeat π (1 + i))).
+  rewrite (left_id ∅ (⋅)), <-comp_app, <-repeat_app.
+  replace (j - i + (1 + i))%nat with (1 + j)%nat by lia.
+  apply perm_eq_equiv, map_to_list_inj.
 Admitted.
+
+End Permutation_order.
 
 Section Generating_set.
 
@@ -61,13 +94,6 @@ Lemma generates_generator σ :
 Proof.
 exists [σ]; split; cbn. set_solver.
 symmetry; apply (right_id ∅ (⋅)).
-Qed.
-
-Lemma comp_app w1 w2 :
-  comp (w2 ++ w1) ≡ comp w2 ⋅ comp w1.
-Proof.
-induction w2; cbn; intros; symmetry.
-apply (left_id ∅ (⋅)). rewrite <-(assoc (⋅)), IHw2; done.
 Qed.
 
 Lemma generates_compose τ π :

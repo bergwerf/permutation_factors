@@ -64,7 +64,7 @@ unfold build; apply iterate_invariant.
   + apply lookup_insert_Some in Hj as [[<- <-]|[]]; [|firstorder].
     apply Horb, Horb in H1 as [Hπ Hk]; split.
     apply generates_compose. done. apply generates_generator; done.
-    rewrite lookup_compose; congruence.
+    rewrite lookup_perm_compose; congruence.
   + apply elem_of_cons in Hj as [].
     injection H; intros <- <-; apply lookup_insert.
     apply H4 in H; cbn in H; etrans; [apply lookup_insert_ne|].
