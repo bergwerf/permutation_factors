@@ -7,12 +7,6 @@ From permlib Require Import util.
 Global Open Scope positive_scope.
 Global Open Scope list_scope.
 
-Definition keys `{FinMapToList K A M} (m : M) : list K :=
-  (map_to_list m).*1.
-
-Definition values `{FinMapToList K A M} (m : M) : list A :=
-  (map_to_list m).*2.
-
 Definition prod_swap {X} (p : X * X) :=
   match p with (x1, x2) => (x2, x1) end.
 
@@ -184,9 +178,13 @@ Qed.
 Lemma keys_pmap_compose m1 m2 :
   keys (pmap_compose m1 m2) ≡ₚ list_union (keys m1) (keys m2).
 Proof.
-(* Can we prove this using `lookup_merge`? *)
-(* Prove ≡ₚ using NoDup and lookups. *)
-Admitted.
+apply NoDup_Permutation. apply NoDup_keys.
+apply NoDup_list_union; apply NoDup_keys.
+intros i; unfold pmap_compose; rewrite elem_of_list_union.
+rewrite ?elem_of_keys, lookup_merge, lookup_fmap; split.
+- intros [j H]; repeat destruct (_ !! i); intuition.
+- intros [[j ->]|[j ->]]; repeat destruct (_ !! i); done.
+Qed.
 
 End Compose.
 

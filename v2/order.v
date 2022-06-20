@@ -26,8 +26,7 @@ destruct (list_pigeonhole s r) as (i & j & ps & H1 & H2 & H3).
   + rewrite <-?perm_Permutation, keys_perm_compose; done.
   + rewrite IHk, <-?perm_Permutation, keys_perm_compose with (τ:=_⋅_).
     rewrite list_union_sym, list_union_cancel. done.
-    rewrite keys_perm_compose; set_solver.
-    all: admit.
+    rewrite keys_perm_compose; set_solver. all: apply NoDup_keys.
 - unfold s, n, r; rewrite fmap_length, seq_length; auto.
 - exists (j - 1 - i)%nat; replace (S (j - 1 - i)) with (j - i)%nat by lia.
   unfold s, compose in H2, H3;
