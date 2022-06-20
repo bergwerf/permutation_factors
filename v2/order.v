@@ -1,38 +1,9 @@
 (* The order of a permutation group given a generating set. *)
 
 From stdpp Require Import finite.
-From permlib Require Import perm.
+From permlib Require Import util perm.
 
 Notation comp := (foldr (⋅) ∅).
-
-Local Ltac simpl_elem_of :=
-  repeat match goal with
-  | H : ?x ∈ ?f <$> ?l |- _ =>
-    let y := fresh x in
-    apply elem_of_list_fmap in H as (y & -> & H);
-    rename y into x
-  end.
-
-Section Permutation_order.
-
-Lemma list_difference_nil `{dec : EqDecision A} (l k : list A) :
-  l ⊆ k -> list_difference l k = [].
-Proof.
-induction l; cbn; intros. done.
-destruct decide_rel; set_solver.
-Qed.
-
-Lemma list_union_cancel `{dec : EqDecision A} (l k : list A) :
-  l ⊆ k -> list_union l k = k.
-Proof.
-intros; unfold list_union;
-rewrite list_difference_nil; done.
-Qed.
-
-Lemma list_union_sym `{dec : EqDecision A} (l k : list A) :
-  NoDup l -> NoDup k -> list_union l k ≡ₚ list_union k l.
-Proof.
-Admitted.
 
 Lemma comp_app w1 w2 :
   comp (w2 ++ w1) ≡ comp w2 ⋅ comp w1.
@@ -69,8 +40,6 @@ destruct (list_pigeonhole s r) as (i & j & ps & H1 & H2 & H3).
   replace (j - i + (1 + i))%nat with (1 + j)%nat by lia.
   apply perm_eq_equiv, map_to_list_inj.
 Admitted.
-
-End Permutation_order.
 
 Section Generating_set.
 

@@ -1,6 +1,6 @@
 (* The Schreier-Sims subgroup chain algorithm. *)
 
-From stdpp Require Import gmap.
+From stdpp Require Import pmap gmap.
 From permlib Require Import perm.
 
 (* This has nicer unfolding behavior than Nat.iter. *)

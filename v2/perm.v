@@ -1,8 +1,8 @@
 (* Permutations based on Pmap from std++. *)
 
 Require Import DecimalString.
-From stdpp Require Import strings.
-From stdpp Require Export base numbers option list pmap.
+From stdpp Require Import strings pmap.
+From permlib Require Import util.
 
 Global Open Scope positive_scope.
 Global Open Scope list_scope.
@@ -41,24 +41,6 @@ Local Ltac simpl_inj :=
   repeat match goal with
   | inj : FinInj ?m, H1 : ?m !! ?i = Some ?y, H2 : ?m !! ?j = Some ?y |- _ =>
     let H := fresh in assert (H := inj _ _ _ H1 H2); clear H1; subst
-  end.
-
-Local Ltac simpl_elem_of :=
-  repeat match goal with
-  | H : ?x ∈ ?f <$> ?l |- _ =>
-    apply elem_of_list_fmap in H as ([] & ? & H)
-  | H : _ ∈ map_to_list _ |- _ =>
-    apply elem_of_map_to_list in H
-  end.
-
-Local Ltac simpl_lookup :=
-  repeat match goal with
-  | H : {[_:=_]} !! _ = Some _ |- _ =>
-    apply lookup_singleton_Some in H as []
-  | H : <[_:=_]> _ !! _ = Some _ |- _ =>
-    apply lookup_insert_Some in H as [[]|[]]; subst
-  | H : delete _ _ !! _ = Some _ |- _ =>
-    apply lookup_delete_Some in H as []
   end.
 
 Section Bijection.

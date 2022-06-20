@@ -1,6 +1,6 @@
 (* Verification of the Schreier-Sims subgroup chain algorithm. *)
 
-From permlib Require Import perm order Schreier_Sims.
+From permlib Require Import util perm order Schreier_Sims.
 
 Arguments singletonM : simpl never.
 
