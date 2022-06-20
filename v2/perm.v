@@ -376,7 +376,7 @@ Qed.
 Global Instance : Equiv perm :=
   λ τ π, ∀ i, τ !!! i = π !!! i.
 
-Lemma perm_eq_equiv (π τ : perm) :
+Lemma eq_perm_car (π τ : perm) :
   perm_car π = perm_car τ -> π ≡ τ.
 Proof.
 intros H i; unfold lookup_total, perm_lookup; rewrite H; done.
@@ -405,11 +405,12 @@ Arguments perm_invert _ : simpl never.
 
 Section Permutation.
 
-Lemma perm_keys (π : perm) :
-  keys π = keys (perm_car π).
-Proof.
-done.
-Qed.
+Lemma perm_keys_unfold_1 (π : perm) : keys π = keys (perm_car π).
+Proof. done. Qed.
+Lemma perm_keys_unfold_2 (π : perm) : keys π = (map_to_list (perm_car π)).*1.
+Proof. done. Qed.
+Lemma perm_values_unfold (π : perm) : values π = (map_to_list (perm_car π)).*2.
+Proof. done. Qed.
 
 Lemma perm_Permutation (π : perm) :
   keys π ≡ₚ values π.
@@ -421,8 +422,21 @@ Qed.
 Lemma keys_perm_compose (π τ : perm) :
   keys (π ⋅ τ) ≡ₚ list_union (keys τ) (keys π).
 Proof.
-rewrite ?perm_keys; destruct τ as [τ_m ? ?], π as [π_m ? ?].
+rewrite ?perm_keys_unfold_1; destruct τ as [τ_m ? ?], π as [π_m ? ?].
 unfold perm_compose; cbn; apply keys_pmap_compose.
+Qed.
+
+Lemma perm_eq_values (π τ : perm) :
+  values π = values τ -> π ≡ τ.
+Proof.
+intros H1; apply eq_perm_car, map_to_list_inj.
+assert (H2 : keys π ≡ₚ keys τ) by now rewrite ?perm_Permutation, H1.
+(* FinMap does not require that the order of keys in map_to_list is independent
+from the order of the values, it only requires that map_to_list is NoDup. We
+have to prove this independence specifically for Pmap. *)
+rewrite <-zip_fst_snd; rewrite <-zip_fst_snd at 1.
+rewrite <-?perm_keys_unfold_2, ?perm_keys_unfold_1, <-?perm_values_unfold.
+rewrite H1; apply pmap_keys_order in H2 as ->; done.
 Qed.
 
 End Permutation.

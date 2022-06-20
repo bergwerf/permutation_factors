@@ -1,6 +1,7 @@
 (* Utilities based on std++. *)
 
 From stdpp Require Export base numbers option list fin_maps.
+From stdpp Require Import pmap.
 
 Definition prod_swap {A} (p : A * A) :=
   match p with (x1, x2) => (x2, x1) end.
@@ -86,3 +87,8 @@ intros; apply NoDup_Permutation.
 1,2: apply NoDup_list_union; done.
 intros; rewrite ?elem_of_list_union; tauto.
 Qed.
+
+Lemma pmap_keys_order {A} (m1 m2 : Pmap A) :
+  keys m1 ≡ₚ keys m2 -> keys m1 = keys m2.
+Proof.
+Admitted.

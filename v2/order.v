@@ -28,17 +28,14 @@ destruct (list_pigeonhole s r) as (i & j & ps & H1 & H2 & H3).
     rewrite list_union_sym, list_union_cancel. done.
     rewrite keys_perm_compose; set_solver. all: apply NoDup_keys.
 - unfold s, n, r; rewrite fmap_length, seq_length; auto.
-- exists (j - 1 - i)%nat; replace (S (j - 1 - i)) with (j - i)%nat by lia.
-  unfold s, compose in H2, H3;
-  apply list_lookup_fmap_inv in H2 as (i' & -> & Hi');
-  apply list_lookup_fmap_inv in H3 as (j' & H2 & Hj');
-  apply lookup_seq in Hi' as [-> _];
-  apply lookup_seq in Hj' as [-> _].
+- unfold s, compose in H2, H3.
+  exists (j - 1 - i)%nat; replace (S (j - 1 - i)) with (j - i)%nat by lia.
+  apply list_lookup_fmap_inv in H2 as (i' & -> & Hi'), H3 as (j' & H2 & Hj');
+  apply lookup_seq in Hi' as [-> _], Hj' as [-> _]; apply perm_eq_values in H2.
   apply group_compose_cancel with (z:=comp (repeat π (1 + i))).
   rewrite (left_id ∅ (⋅)), <-comp_app, <-repeat_app.
-  replace (j - i + (1 + i))%nat with (1 + j)%nat by lia.
-  apply perm_eq_equiv, map_to_list_inj.
-Admitted.
+  replace (j - i + (1 + i))%nat with (1 + j)%nat by lia; done.
+Qed.
 
 Section Generating_set.
 
