@@ -18,18 +18,21 @@ Section Permutation_order.
 Lemma list_difference_nil `{dec : EqDecision A} (l k : list A) :
   l ⊆ k -> list_difference l k = [].
 Proof.
-Admitted.
-
-Lemma list_union_sym `{dec : EqDecision A} (l k : list A) :
-  list_union l k ≡ₚ list_union k l.
-Proof.
-Admitted.
+induction l; cbn; intros. done.
+destruct decide_rel; set_solver.
+Qed.
 
 Lemma list_union_cancel `{dec : EqDecision A} (l k : list A) :
   l ⊆ k -> list_union l k = k.
 Proof.
-intros; unfold list_union; rewrite list_difference_nil; done.
+intros; unfold list_union;
+rewrite list_difference_nil; done.
 Qed.
+
+Lemma list_union_sym `{dec : EqDecision A} (l k : list A) :
+  NoDup l -> NoDup k -> list_union l k ≡ₚ list_union k l.
+Proof.
+Admitted.
 
 Lemma comp_app w1 w2 :
   comp (w2 ++ w1) ≡ comp w2 ⋅ comp w1.
@@ -49,10 +52,11 @@ destruct (list_pigeonhole s r) as (i & j & ps & H1 & H2 & H3).
   apply elem_of_seq in H; destruct k; [lia|clear].
   unfold compose; apply permutations_Permutation.
   induction k; cbn in *.
-  + rewrite <-?perm_Permutation, perm_compose_keys, list_union_sym; done.
-  + rewrite IHk, <-?perm_Permutation, perm_compose_keys with (τ:=_⋅_).
-    rewrite list_union_cancel. done.
-    rewrite perm_compose_keys, list_union_sym; set_solver.
+  + rewrite <-?perm_Permutation, keys_perm_compose; done.
+  + rewrite IHk, <-?perm_Permutation, keys_perm_compose with (τ:=_⋅_).
+    rewrite list_union_sym, list_union_cancel. done.
+    rewrite keys_perm_compose; set_solver.
+    all: admit.
 - unfold s, n, r; rewrite fmap_length, seq_length; auto.
 - exists (j - 1 - i)%nat; replace (S (j - 1 - i)) with (j - i)%nat by lia.
   unfold s, compose in H2, H3;

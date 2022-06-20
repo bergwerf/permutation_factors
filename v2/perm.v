@@ -199,9 +199,11 @@ intros; apply fsurj_iff_surj, apply_pmap_compose_surj;
 apply fsurj_iff_surj; done.
 Qed.
 
-Lemma pmap_compose_keys m1 m2 :
-  keys (pmap_compose m1 m2) ≡ₚ list_union (keys m2) (keys m1).
+Lemma keys_pmap_compose m1 m2 :
+  keys (pmap_compose m1 m2) ≡ₚ list_union (keys m1) (keys m2).
 Proof.
+(* Can we prove this using `lookup_merge`? *)
+(* Prove ≡ₚ using NoDup and lookups. *)
 Admitted.
 
 End Compose.
@@ -427,11 +429,11 @@ apply inj_surj_Permutation.
 apply perm_inj. apply perm_surj.
 Qed.
 
-Lemma perm_compose_keys (π τ : perm) :
-  keys (π ⋅ τ) ≡ₚ list_union (keys π) (keys τ).
+Lemma keys_perm_compose (π τ : perm) :
+  keys (π ⋅ τ) ≡ₚ list_union (keys τ) (keys π).
 Proof.
 rewrite ?perm_keys; destruct τ as [τ_m ? ?], π as [π_m ? ?].
-unfold perm_compose; cbn; apply pmap_compose_keys.
+unfold perm_compose; cbn; apply keys_pmap_compose.
 Qed.
 
 End Permutation.
