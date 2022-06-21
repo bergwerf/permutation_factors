@@ -45,6 +45,14 @@ Ltac simpl_elem_of :=
     rename y into x
   end.
 
+Ltac simpl_Permutation :=
+  repeat match goal with
+  | H : [] ≡ₚ _ |- _ =>
+    symmetry in H
+  | H : _ ≡ₚ [] |- _ =>
+    apply Permutation_nil_r in H; try rewrite H
+  end.
+
 Global Instance prod_swap_inj {X} :
   Inj eq eq (@prod_swap X).
 Proof.
@@ -113,17 +121,21 @@ unfold keys, map_to_list, Pto_list; destruct m as [car prf]; cbn.
 rewrite pmap_keys_spec_raw, app_nil_r; done.
 Qed.
 
+Lemma Permutation_app_split `{EqDecision A} (l1 l2 l3 l4 : list A) :
+  l1 ++ l2 ≡ₚ l3 ++ l4 -> list_intersection l1 l4 = [] -> l1 ≡ₚ l3 ∧ l2 ≡ₚ l4.
+Proof.
+Admitted.
+
 Lemma pmap_keys_Permutation_raw {A} j (m1 m2 : Pmap_raw A) :
   pmap_keys j m1 ≡ₚ pmap_keys j m2 ->
   pmap_keys j m1 = pmap_keys j m2.
 Proof.
-revert j m2; induction m1; cbn; intros.
-symmetry in H; apply Permutation_nil_r in H as ->; done.
-destruct m2; cbn in *. apply Permutation_nil_r in H as ->; done.
-rewrite (IHm1_1 _ m2_1), (IHm1_2 _ m2_2).
-- destruct o, o0; try done; exfalso. admit. admit.
-- apply NoDup_Permutation. admit. admit. admit.
-- apply NoDup_Permutation. admit. admit. admit.
+revert j m2; induction m1; cbn; intros. simpl_Permutation; done.
+destruct m2; cbn in *. simpl_Permutation; done.
+apply Permutation_app_split in H as [H1 H2].
+apply Permutation_app_split in H2 as [H2 H3].
+rewrite (IHm1_1 _ m2_1), (IHm1_2 _ m2_2); try done.
+destruct o, o0; try done; simpl_Permutation; done.
 Admitted.
 
 Corollary pmap_keys_Permutation {A} (m1 m2 : Pmap A) :
