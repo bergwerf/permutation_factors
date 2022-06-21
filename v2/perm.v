@@ -436,7 +436,7 @@ from the order of the values, it only requires that map_to_list is NoDup. We
 have to prove this independence specifically for Pmap. *)
 rewrite <-zip_fst_snd; rewrite <-zip_fst_snd at 1.
 rewrite <-?perm_keys_unfold_2, ?perm_keys_unfold_1, <-?perm_values_unfold.
-rewrite H1; apply pmap_keys_order in H2 as ->; done.
+rewrite H1; apply pmap_keys_Permutation in H2 as ->; done.
 Qed.
 
 End Permutation.

@@ -12,6 +12,15 @@ Definition keys `{FinMapToList K A M} (m : M) : list K :=
 Definition values `{FinMapToList K A M} (m : M) : list A :=
   (map_to_list m).*2.
 
+Fixpoint pmap_keys {A} j (m : Pmap_raw A) : list positive :=
+  match m with
+  | PLeaf => []
+  | PNode o l r =>
+    (if o then [Preverse j] else []) ++
+    pmap_keys (j~0)%positive l ++
+    pmap_keys (j~1)%positive r
+  end.
+
 Ltac simpl_lookup :=
   repeat match goal with
   | H : {[_:=_]} !! _ = Some _ |- _ =>
@@ -88,7 +97,39 @@ intros; apply NoDup_Permutation.
 intros; rewrite ?elem_of_list_union; tauto.
 Qed.
 
-Lemma pmap_keys_order {A} (m1 m2 : Pmap A) :
+Section Pmap_keys.
+
+Lemma pmap_keys_spec_raw {A} j (m : Pmap_raw A) acc :
+  (Pto_list_raw j m acc).*1 = pmap_keys j m ++ acc.*1.
+Proof.
+revert j acc; induction m; cbn; intros. done.
+rewrite fmap_app, IHm1, IHm2, <-?app_assoc; destruct o; done.
+Qed.
+
+Lemma pmap_keys_spec {A} (m : Pmap A) :
+  keys m = pmap_keys xH (pmap_car m).
+Proof.
+unfold keys, map_to_list, Pto_list; destruct m as [car prf]; cbn.
+rewrite pmap_keys_spec_raw, app_nil_r; done.
+Qed.
+
+Lemma pmap_keys_Permutation_raw {A} j (m1 m2 : Pmap_raw A) :
+  pmap_keys j m1 ≡ₚ pmap_keys j m2 ->
+  pmap_keys j m1 = pmap_keys j m2.
+Proof.
+revert j m2; induction m1; cbn; intros.
+symmetry in H; apply Permutation_nil_r in H as ->; done.
+destruct m2; cbn in *. apply Permutation_nil_r in H as ->; done.
+rewrite (IHm1_1 _ m2_1), (IHm1_2 _ m2_2).
+- destruct o, o0; try done; exfalso. admit. admit.
+- apply NoDup_Permutation. admit. admit. admit.
+- apply NoDup_Permutation. admit. admit. admit.
+Admitted.
+
+Corollary pmap_keys_Permutation {A} (m1 m2 : Pmap A) :
   keys m1 ≡ₚ keys m2 -> keys m1 = keys m2.
 Proof.
-Admitted.
+rewrite ?pmap_keys_spec; apply pmap_keys_Permutation_raw.
+Qed.
+
+End Pmap_keys.
