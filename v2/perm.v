@@ -4,9 +4,6 @@ Require Import DecimalString.
 From stdpp Require Import strings pmap.
 From permlib Require Import util.
 
-Global Open Scope positive_scope.
-Global Open Scope list_scope.
-
 Definition pmap_swap (i j : positive) : Pmap positive :=
   {[i:=j; j:=i]}.
 
