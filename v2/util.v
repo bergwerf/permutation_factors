@@ -53,6 +53,9 @@ Ltac simpl_elem_of :=
     let y := fresh x in
     apply elem_of_list_fmap in H as (y & -> & H);
     rename y into x
+  | H : ?x ∈ filter ?P ?l |- _ =>
+    let H1 := fresh H in let H2 := fresh H in
+    apply elem_of_list_filter in H as [H1 H2]; cbn in H1
   end.
 
 Ltac simpl_Permutation :=
@@ -63,8 +66,8 @@ Ltac simpl_Permutation :=
     apply Permutation_nil_r in H; try rewrite H
   end.
 
-Global Instance prod_swap_inj {X} :
-  Inj eq eq (@prod_swap X).
+Global Instance prod_swap_inj {A} :
+  Inj eq eq (@prod_swap A).
 Proof.
 intros [] []; cbn; congruence.
 Qed.

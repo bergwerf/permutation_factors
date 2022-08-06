@@ -16,6 +16,9 @@ Definition pmap_compose (m1 m2 : Pmap positive) : Pmap positive :=
 Definition pmap_invert (m : Pmap positive) : Pmap positive :=
   list_to_map (prod_swap <$> map_to_list m).
 
+Definition pmap_red (m : Pmap positive) : Pmap positive :=
+  list_to_map (filter (not ∘ uncurry eq) (map_to_list m)).
+
 Definition FinInj `{Lookup X X (M X)} (m : M X) :=
   ∀ x1 x2 y, m !! x1 = Some y -> m !! x2 = Some y -> x1 = x2.
 
@@ -266,6 +269,25 @@ apply pmap_invert_Some; done.
 Qed.
 
 End Invert.
+
+Section Reduction.
+
+Lemma pmap_red_eq m i :
+  pmap_apply (pmap_red m) i = pmap_apply m i.
+Proof.
+unfold pmap_apply, pmap_red; destruct (list_to_map _ !! i) eqn:E; cbn.
+- apply elem_of_list_to_map in E. simpl_elem_of; rewrite E1; done.
+  apply NoDup_fmap_fst; intros. simpl_elem_of; congruence.
+  apply NoDup_filter, NoDup_map_to_list.
+- destruct (m !! i) eqn:Hi; [|done].
+  destruct (decide (i = p)); [done|exfalso].
+  apply not_elem_of_list_to_map in E; apply E.
+  apply elem_of_list_fmap; exists (i, p); split; [done|].
+  apply elem_of_list_filter; split; [done|].
+  apply elem_of_map_to_list; done.
+Qed.
+
+End Reduction.
 
 End Bijection.
 
