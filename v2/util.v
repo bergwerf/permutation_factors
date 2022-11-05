@@ -19,7 +19,7 @@ Fixpoint pmap_keys {A} j (m : Pmap_raw A) : list positive :=
   match m with
   | PLeaf => []
   | PNode o l r =>
-    (if o then [Preverse j] else []) ++
+    (if o then [Pos.reverse j] else []) ++
     pmap_keys j~0 l ++ pmap_keys j~1 r
   end.
 
@@ -173,45 +173,45 @@ Proof.
 induction j; cbn; lia.
 Qed.
 
-Lemma size_Preverse_go i j :
-  Pos.size (Preverse_go i j) = Pos.size i + Pos.size j - 1.
+Lemma size_reverse_go i j :
+  Pos.size (Pos.reverse_go i j) = Pos.size i + Pos.size j - 1.
 Proof.
 revert i; induction j; cbn; intros.
 1,2: rewrite IHj; cbn; lia. lia.
 Qed.
 
-Lemma size_Preverse i :
-  Pos.size (Preverse i) = Pos.size i.
+Lemma size_reverse i :
+  Pos.size (Pos.reverse i) = Pos.size i.
 Proof.
-unfold Preverse; rewrite size_Preverse_go, Pos.add_comm; cbn; lia.
+unfold Pos.reverse; rewrite size_reverse_go, Pos.add_comm; cbn; lia.
 Qed.
 
 Variable A : Type.
 Implicit Types m : Pmap_raw A.
 
 Lemma Psuffix_pmap_keys i j m :
-  Psuffix (Preverse i) (Preverse j) ->
-  Forall (Psuffix (Preverse i)) (pmap_keys j m).
+  Psuffix (Pos.reverse i) (Pos.reverse j) ->
+  Forall (Psuffix (Pos.reverse i)) (pmap_keys j m).
 Proof.
 revert j; induction m; cbn; intros. done.
 repeat (apply Forall_app; split).
 - destruct o; [apply Forall_singleton|done]; done.
-- apply IHm1; rewrite Preverse_xO; apply Psuffix_app; done.
-- apply IHm2; rewrite Preverse_xI; apply Psuffix_app; done.
+- apply IHm1; rewrite Pos.reverse_xO; apply Psuffix_app; done.
+- apply IHm2; rewrite Pos.reverse_xI; apply Psuffix_app; done.
 Qed.
 
 Lemma not_Psuffix_pmap_keys i j m :
   Pos.size i ≤ Pos.size j ->
-  ¬ Psuffix (Preverse i) (Preverse j) ->
-  Forall (not ∘ Psuffix (Preverse i)) (pmap_keys j m).
+  ¬ Psuffix (Pos.reverse i) (Pos.reverse j) ->
+  Forall (not ∘ Psuffix (Pos.reverse i)) (pmap_keys j m).
 Proof.
 revert j; induction m; cbn; intros j H1 H2. done.
 repeat (apply Forall_app; split).
 - destruct o; [apply Forall_singleton|done]; done.
-- apply IHm1; [cbn; lia|]; rewrite Preverse_xO; intros H3; apply H2.
-  eapply Psuffix_app_inv; [|apply H3]. rewrite ?size_Preverse; done.
-- apply IHm2; [cbn; lia|]; rewrite Preverse_xI; intros H3; apply H2.
-  eapply Psuffix_app_inv; [|apply H3]. rewrite ?size_Preverse; done.
+- apply IHm1; [cbn; lia|]; rewrite Pos.reverse_xO; intros H3; apply H2.
+  eapply Psuffix_app_inv; [|apply H3]. rewrite ?size_reverse; done.
+- apply IHm2; [cbn; lia|]; rewrite Pos.reverse_xI; intros H3; apply H2.
+  eapply Psuffix_app_inv; [|apply H3]. rewrite ?size_reverse; done.
 Qed.
 
 Lemma pmap_keys_Permutation_raw j m1 m2 :
@@ -220,18 +220,18 @@ Lemma pmap_keys_Permutation_raw j m1 m2 :
 Proof.
 revert j m2; induction m1; cbn; intros. simpl_Permutation; done.
 destruct m2; cbn in *. simpl_Permutation; done. rewrite ?app_assoc in H.
-apply Permutation_app_split with (P:=Psuffix (Preverse j~1)) in H as [H H1].
-apply Permutation_app_split with (P:=Psuffix (Preverse j~0)) in H as [H H0].
+apply Permutation_app_split with (P:=Psuffix (Pos.reverse j~1)) in H as [H H1].
+apply Permutation_app_split with (P:=Psuffix (Pos.reverse j~0)) in H as [H H0].
 rewrite (IHm1_1 _ m2_1), (IHm1_2 _ m2_2); try done.
 destruct o, o0; try done; simpl_Permutation; done.
 all: try (apply Forall_app; split).
 all: try (apply Psuffix_pmap_keys; done).
 all: try (apply not_Psuffix_pmap_keys; [cbn; lia|]).
-4,6: rewrite Preverse_xO, Preverse_xI; apply gt_not_Psuffix, gt_Papp; lia.
+4,6: rewrite Pos.reverse_xO, Pos.reverse_xI; apply gt_not_Psuffix, gt_Papp; lia.
 1,3: destruct o; try done. 3,4: destruct o0; try done.
 all: apply Forall_singleton, gt_not_Psuffix.
-all: rewrite ?Preverse_xO, ?Preverse_xI.
-all: rewrite <-(Papp_1_l (Preverse _)) at 2.
+all: rewrite ?Pos.reverse_xO, ?Pos.reverse_xI.
+all: rewrite <-(Pos.app_1_l (Pos.reverse j)) at 2.
 all: apply gt_Papp; lia.
 Qed.
 

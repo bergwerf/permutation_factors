@@ -97,8 +97,8 @@ Section Permutation.
 Lemma values_prod_swap :
   values m = (prod_swap <$> map_to_list m).*1.
 Proof.
-rewrite <-list_fmap_compose, list_fmap_ext with (g:=snd)(l2:=map_to_list m).
-done. intros []; done. done.
+rewrite <-list_fmap_compose, list_fmap_ext with (g:=snd).
+done. intros i [] _; done.
 Qed.
 
 Lemma NoDup_values :
