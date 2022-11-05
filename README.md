@@ -1,5 +1,5 @@
-Permutation Computing in Coq
-============================
+Permutation Factorization in Coq
+================================
 The goal of this project is to develop a verified functional implementation of
 the algorithms by O. Schreier, C. Sims, and T. Minkwitz using Coq. The combined
 algorithm is able to efficiently give solutions to the permutation word problem:
